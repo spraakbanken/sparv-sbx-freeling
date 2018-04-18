@@ -21,6 +21,8 @@ and part-of-speech annotations for the following languages:
 
 * Download and install the [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline).
 * Download and install [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
+* Download the FreeLing language models by running the script `download_models.sh`.
+* Copy the `freeling` directory into the `models` directory of your Sparv installation.
 * Copy the script `freeling.py` into the `sparv` directory (the one containing the python scripts) of your Sparv installation.
 
 ## Usage
