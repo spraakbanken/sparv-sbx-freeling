@@ -6,9 +6,9 @@
 import re
 from queue import Queue, Empty
 from threading import Thread
-from lxml import etree as ET
+import xml.etree.cElementTree as ET
 import subprocess
-import sb.util as util
+import sparv.util as util
 
 SENTTAG = "s"
 WORDTAG = "w"
