@@ -103,6 +103,9 @@ def fl_exec(fl_instance, node, inputtext, lang, sent_end, slevel):
     analysis back, using pipes. Does sentence segmentation unless slevel is set."""
     fl = fl_instance.process
 
+    # Save this node's attributes before they are removed with clear()
+    attrs = dict(node.attrib)
+
     if slevel:
         # Collect stuff from under this node and remove old text.
         if node.text:
@@ -120,15 +123,15 @@ def fl_exec(fl_instance, node, inputtext, lang, sent_end, slevel):
         # Collect stuff from under this node and remove contents. (=flatten structure)
         attrs = dict(node.attrib)
         node.clear()
-
-        # Get back attributes that were lost in child.clear()
-        for k, v in list(attrs.items()):
-            node.set(k, v)
         rawtext = inputtext
 
         # We assume that at this stage, all sentences are within XML tags.
         # Hence, we start a new <s> for each existing block of text sent to FL.
         newsnode = ET.Element(SENTTAG)
+
+    # Get back attributes that were lost in node.clear()
+    for k, v in list(attrs.items()):
+        node.set(k, v)
 
     # Send material with begin/end markers to FreeLing via pipe.
     fl.stdin.write(START + b'\n' + rawtext + b'\n' + END + b'\n')
