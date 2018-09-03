@@ -37,7 +37,7 @@ def fl_proc(in_file, out_file, conf_file, lang, sent_end="Fp", slevel=""):
         root = tree.getroot()
 
     # Convert text document to XML
-    except ET.XMLSyntaxError:
+    except ET.ParseError:
         f = open(in_file, 'r').read()
         text = '<text>\n' + f + '\n</text>'
         root = ET.fromstring(text)
