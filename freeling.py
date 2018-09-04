@@ -120,8 +120,7 @@ def fl_exec(fl_instance, node, inputtext, lang, sent_end, slevel):
         node.clear()
 
     else:
-        # Collect stuff from under this node and remove contents. (=flatten structure)
-        attrs = dict(node.attrib)
+        # Remove contents from this node (=flatten structure)
         node.clear()
         rawtext = inputtext
 
