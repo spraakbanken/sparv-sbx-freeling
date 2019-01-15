@@ -1,3 +1,6 @@
+# Folder for model files
+freeling/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

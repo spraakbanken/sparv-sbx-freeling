@@ -1,113 +1,100 @@
 # -*- coding: utf-8 -*-
 
-# TODO: After switching to Python 3, this can be rewritten using the
-# Python bindings for FL instead of subprocess/piping.
-
 import re
-from queue import Queue, Empty
-from threading import Thread
-import xml.etree.cElementTree as ET
 import subprocess
+import threading
+import queue
+import xml.etree.cElementTree as etree
 import sparv.util as util
 
 SENTTAG = "s"
 WORDTAG = "w"
-
-# Sufficiently random material that FreeLing will always treat as one
-# token. It signals to the sender that begin/end of processed data has
-# been reached in the output.
-START = b"27345327645267453684527684"
-END   = b"27345327645267453684527685"
+END = b"27345327645267453684527685"
 
 
-def fl_proc(in_file, out_file, conf_file, lang, sent_end="Fp", slevel=""):
-    """ Read an XML or text document and process the text with FreeLing.
-    Works for English, French, German, Italian, Portuguese, Russian, Spanish.
-    - conf_file is a language specific FreeLing CFG file
-    - lang is the two-letter language code of the language to be analyzed
-    - sent_end is the tag that marks the end of a sentence
-    - slevel should be set if the material already has sentence-level annotations
+def freeling_wrapper(in_file, out_file, conf_file, lang, sent_end="Fp", slevel=""):
     """
-    # Init the external FreeLingTool
-    fl = Freeling(conf_file)
+    Read an XML or text document and process the text with FreeLing.
+    - conf_file: path to a language specific FreeLing CFG file
+    - lang: the two-letter language code of the language to be analyzed
+    - sent_end: the POS tag that marks the end of a sentence
+    - slevel: the sentence tag in the indata. Should only be set if the
+      material already has sentence-level annotations
+    """
+    # Init FreeLing as child process
+    fl_instance = Freeling(conf_file, lang, sent_end, slevel)
 
     # Parse document into tree
     try:
-        tree = ET.parse(in_file)
+        tree = etree.parse(in_file)
         root = tree.getroot()
-
-    # Convert text document to XML
-    except ET.ParseError:
+    except etree.ParseError:
+        # Convert text document to XML
         f = open(in_file, 'r').read()
         text = '<text>\n' + f + '\n</text>'
-        root = ET.fromstring(text)
-        tree = ET.ElementTree(root)
+        root = etree.fromstring(text)
+        tree = etree.ElementTree(root)
 
-    # Iterate through tree and FreeLingize all text nodes
+    # Walk tree and send all text nodes to FreeLing
     if slevel:
         for node in root.iterfind(".//" + slevel):
-            fl_exec(fl, node, "", lang, sent_end, slevel)
+            rawtext, _newsnode = prepare_node(fl_instance, node)
+            run_freeling(fl_instance, node, rawtext)
     else:
         for node in treeiter(root):
             inputtext = " ".join(list(node.itertext())).encode(util.UTF8)
-            fl_exec(fl, node, inputtext, lang, sent_end, slevel)
+            rawtext, newsnode = prepare_node(fl_instance, node, inputtext)
+            run_freeling(fl_instance, node, rawtext, newsnode=newsnode)
 
     # Kill running subprocess
-    fl.kill()
-    # util.system.kill_process(fl)
+    fl_instance.kill()
 
-    # Write file
+    # Write output file (usually in src directory)
     tree.write(out_file, encoding=util.UTF8)
 
 
-def treeiter(tree):
-    """Tree generator that yields flattened nodes. """
-    text = tree.text.strip() if tree.text else None
-    if text:
-        yield tree
-    else:
-        for child in tree:
-            for i in treeiter(child):
-                yield i
-
-
 class Freeling(object):
-    """Handles Freeling-processes."""
-    def __init__(self, config_file):
-        self.config_file = config_file
+    """Handle the FreeLing process."""
+
+    def __init__(self, conf_file, lang, sent_end, slevel):
+        """Set variables and start FreeLing process."""
+        self.conf_file = conf_file
+        self.lang = lang
+        self.sent_end = sent_end
+        self.slevel = slevel
         self.start()
         self.error = False
 
     def start(self):
         """Start the external FreeLingTool."""
-        self.process = subprocess.Popen(['analyze', '-f', self.config_file, "--flush"],
+        self.process = subprocess.Popen(['analyze', '-f', self.conf_file, '--flush'],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
                                         bufsize=0)
-        self.queue = Queue()
-        t = Thread(target=enqueue_output, args=(self.process.stderr, self.queue))
-        t.daemon = True  # thread dies with the program
-        t.start()
+        self.qerr = queue.Queue()
+        self.terr = threading.Thread(target=enqueue_output, args=(self.process.stderr, self.qerr))
+        self.terr.daemon = True  # thread dies with the program
+        self.terr.start()
 
     def kill(self):
+        """Terminate current process."""
         util.system.kill_process(self.process)
 
     def restart(self):
+        """Restart current process."""
         self.kill()
         self.start()
 
 
-def fl_exec(fl_instance, node, inputtext, lang, sent_end, slevel):
-    """Function that sends one chunk of material to FreeLing and gets the
-    analysis back, using pipes. Does sentence segmentation unless slevel is set."""
-    fl = fl_instance.process
-
-    # Save this node's attributes before they are removed with clear()
+def prepare_node(fl_instance, node, inputtext=""):
+    """Extract input text for processing with FreeLing and clear node."""
+    # Save the node's attributes before they are removed with node.clear()
     attrs = dict(node.attrib)
 
-    if slevel:
-        # Collect stuff from under this node and remove old text.
+    if fl_instance.slevel:
+        newsnode = None
+        # Collect text from under this node and remove old text
         if node.text:
             rawtext = node.text.encode(util.UTF8)
             node.text = ""
@@ -117,104 +104,143 @@ def fl_exec(fl_instance, node, inputtext, lang, sent_end, slevel):
         for child in node.iter():
             if child.text or child.tail:
                 rawtext += b" " + child.text.encode(util.UTF8) + b" " + child.tail.encode(util.UTF8)
-        node.clear()
 
     else:
-        # Remove contents from this node (=flatten structure)
-        node.clear()
         rawtext = inputtext
+        newsnode = etree.Element(SENTTAG)
 
-        # We assume that at this stage, all sentences are within XML tags.
-        # Hence, we start a new <s> for each existing block of text sent to FL.
-        newsnode = ET.Element(SENTTAG)
+    # Remove contents from node (=flatten structure)
+    node.clear()
 
-    # Get back attributes that were lost in node.clear()
+    # Get back attributes that were removed with node.clear()
     for k, v in list(attrs.items()):
         node.set(k, v)
 
-    # Send material with begin/end markers to FreeLing via pipe.
-    fl.stdin.write(START + b'\n' + rawtext + b'\n' + END + b'\n')
+    return rawtext, newsnode
 
+
+def run_freeling(fl_instance, node, rawtext, newsnode=None):
+    """
+    Send a chunk of material to FreeLing and get the analysis, using pipes.
+    Do sentence segmentation unless slevel is set.
+    """
     # Read stderr without blocking
     try:
-        line = fl_instance.queue.get(timeout=.1)
-        util.log.warning("Freeling error encountered: %s" % line)
+        line = fl_instance.qerr.get(timeout=.1)
+        util.log.warning("FreeLing error encountered: %s" % line)
         fl_instance.error = True
-    except Empty:
+    except queue.Empty:
+        # No errors, continue
         pass
 
-    # Forward to the BEGIN marker.
-    readin = b""
-    while not re.match(START, readin):
-        readin = fl.stdout.readline()
+    # Send material to FreeLing; Send blank lines for flushing;
+    # Send end-marker to know when to stop reading stdout
+    text = rawtext + b"\n" + END + b"\n"
 
-    n = 0
-    # Read everything until the END marker occurs.
-    while True:
-        readin = fl.stdout.readline()
-        if not readin.strip():
-            n += 1
-            # If there is no output and and error has occurred
-            # skip this node and restart freeling
-            if n == 10 and fl_instance.error:
-                make_fallback_output(node, rawtext)
-                fl_instance.restart()
-                return
-        if re.match(END, readin):
-            fl_instance.error = False
-            if slevel:
+    # Send input to FreeLing in thread (prevents blocking)
+    threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
+
+    # Read output line by line
+    empty_output = 0
+    for line in iter(fl_instance.process.stdout.readline, ''):
+
+        if not line.strip():
+            empty_output += 1
+        else:
+            empty_output = 0
+
+        # Reached end marker, all text processed!
+        if re.match(END, line):
+            if fl_instance.slevel:
                 break
             else:
-                # Close the current sentence and attach to original
-                # annotation node (usually <link>).
+                # Close the current sentence and attach to original node
                 if len(list(newsnode)) > 0:
                     node.append(newsnode)
                 break
 
-        if len(readin) > 0:
-            # ... and process it. We only need the first three fields.
-            fields = readin.split(b" ")
-            if len(fields) >= 3:
+        # No output recieved in a while. Skip this node and restart FreeLing.
+        # Multiple blank lines in input are ignored by FreeLing.
+        if empty_output > 5:
+            if not fl_instance.error:
+                util.log.warning("Something went wrong, FreeLing stopped responding.")
+            make_fallback_output(node, rawtext)
+            fl_instance.restart()
+            return
 
-                # Add stuff as XML nodes
-                # Create new node.
-                msd = fields[2].decode(util.UTF8)
-                pos = util.msd_to_pos.convert(msd, lang)
-
-                newnode = ET.Element(WORDTAG, {"pos": pos, "msd": msd, "lemma": fields[1].decode(util.UTF8)})
-                newnode.text = fields[0].decode(util.UTF8)
-
-                # Append new node.
-                if slevel:
-                    node.append(newnode)
-                else:
-                    newsnode.append(newnode)
-
-                if not slevel:
-                    # If this ends a sentence, close <s>, attach, and create new <s>.
-                    if fields[2].decode(util.UTF8) == sent_end:
-                        if len(list(newsnode)) > 0:
-                            node.append(newsnode)
-                        newsnode = ET.Element(SENTTAG)
+        if len(line.rstrip()) > 0:
+            newsnode = process_output(fl_instance, line, node, newsnode)
 
 
-def make_fallback_output(node, inputtext):
-    """Creates some emergency output in case Freeling crashes for a sentence."""
-    newsnode = ET.Element(SENTTAG)
-    node.append(newsnode)
-    words = inputtext.split()
-    for w in words:
-        newnode = ET.Element(WORDTAG)
-        newnode.text = w.decode(util.UTF8)
-        newsnode.append(newnode)
+def process_output(fl_instance, line, node, newsnode):
+    """Process one line of FreeLing's output and convert it to Sparv's XML format."""
+    fields = line.split(b" ")
+
+    if len(fields) >= 3:
+        word = fields[0].decode(util.UTF8)
+        lemma = fields[1].decode(util.UTF8)
+        msd = fields[2].decode(util.UTF8)
+        pos = util.msd_to_pos.convert(msd, fl_instance.lang)
+
+        # Create new word node and add attributes
+        newwnode = etree.Element(WORDTAG, {"pos": pos, "msd": msd, "lemma": lemma})
+        newwnode.text = word
+
+        # Attach new word node
+        if fl_instance.slevel:
+            node.append(newwnode)
+        else:
+            newsnode.append(newwnode)
+
+            # If this ends a sentence, close <s>, attach, and create new <s>
+            if msd == fl_instance.sent_end:
+                if len(list(newsnode)) > 0:
+                    node.append(newsnode)
+                newsnode = etree.Element(SENTTAG)
+
+    return newsnode
+
+
+#####################
+# Auxiliary functions
+#####################
+
+def treeiter(tree):
+    """Tree generator that yields flattened nodes."""
+    text = tree.text.strip() if tree.text else None
+    if text:
+        yield tree
+    else:
+        for child in tree:
+            for i in treeiter(child):
+                yield i
 
 
 def enqueue_output(out, queue):
-    """Auxiliary function needed for reading without blocking."""
+    """Auxiliary needed for reading without blocking."""
     for line in iter(out.readline, b''):
         queue.put(line)
     out.close()
 
 
+def pump_input(pipe, lines):
+    """Auxiliary for writing to pipe without blocking."""
+    pipe.write(lines)
+    # # If module stops working, maybe try splitting lines
+    # for line in lines.split(b"\n"):
+    #     pipe.write(line + b"\n")
+
+
+def make_fallback_output(node, inputtext):
+    """Create output without annotations in case FreeLing crashes for a sentence."""
+    newsnode = etree.Element(SENTTAG)
+    node.append(newsnode)
+    words = inputtext.split()
+    for w in words:
+        newwnode = etree.Element(WORDTAG)
+        newwnode.text = w.decode(util.UTF8)
+        newsnode.append(newwnode)
+
+
 if __name__ == "__main__":
-    util.run.main(fl_proc)
+    util.run.main(freeling_wrapper)
