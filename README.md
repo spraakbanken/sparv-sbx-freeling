@@ -20,7 +20,7 @@ and part-of-speech annotations for the following languages:
 ## Installation
 
 * Download and install the [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline).
-* Download and install [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
+* Download and install [FreeLing 4.1](https://github.com/TALP-UPC/FreeLing/releases/tag/4.1).
 * Download the FreeLing language models by running the script `download_models.sh`.
 * Copy the `freeling` directory into the `models` directory of your Sparv installation.
 * Copy the script `freeling.py` into the `sparv` directory (the one containing the python scripts) of your Sparv installation.
@@ -33,7 +33,7 @@ Example corpus (`mycorpus.xml`):
 
 ```
 <text title="Example">
-This is an example for how to run Sparv.
+  This is an example for how to run Sparv.
 </text>
 ```
 
@@ -74,19 +74,19 @@ Command for creating xml with annotations:
 Result file (`export.original/mycorpus.xml`):
 ```
 <corpus>
-<text title="Example">
-<sentence id="enc022-enc5ca">
-<w pos="DET" msd="DT" lemma="this">This</w>
-<w pos="VERB" msd="VBZ" lemma="be">is</w>
-<w pos="DET" msd="DT" lemma="a">an</w>
-<w pos="NOUN" msd="NN" lemma="example">example</w>
-<w pos="ADP" msd="IN" lemma="for">for</w>
-<w pos="ADV" msd="WRB" lemma="how">how</w>
-<w pos="PART" msd="TO" lemma="to">to</w>
-<w pos="VERB" msd="VB" lemma="run">run</w>
-<w pos="PROPN" msd="NP" lemma="sparv">Sparv</w>
-<w pos="PUNCT" msd="Fp" lemma=".">.</w>
-</sentence>
-</text>
+  <text title="Example">
+    <sentence id="enc022-enc5ca">
+      <w pos="DET" msd="DT" lemma="this">This</w>
+      <w pos="VERB" msd="VBZ" lemma="be">is</w>
+      <w pos="DET" msd="DT" lemma="a">an</w>
+      <w pos="NOUN" msd="NN" lemma="example">example</w>
+      <w pos="ADP" msd="IN" lemma="for">for</w>
+      <w pos="ADV" msd="WRB" lemma="how">how</w>
+      <w pos="PART" msd="TO" lemma="to">to</w>
+      <w pos="VERB" msd="VB" lemma="run">run</w>
+      <w pos="PROPN" msd="NP" lemma="sparv">Sparv</w>
+      <w pos="PUNCT" msd="Fp" lemma=".">.</w>
+    </sentence>
+  </text>
 </corpus>
 ```
