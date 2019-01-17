@@ -137,11 +137,11 @@ def run_freeling(fl_instance, node, rawtext, newsnode=None):
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
     text = rawtext + b"\n" + END + b"\n"
-    # util.log.debug("Sending input to FreeLing:\n%s" % rawtext)
+    util.log.debug("Sending input to FreeLing:\n%s" % rawtext)
 
     # Send input to FreeLing in thread (prevents blocking)
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
-    # util.log.debug("Done sending input to FreeLing!")
+    util.log.debug("Done sending input to FreeLing!")
 
     # Read output line by line
     empty_output = 0
@@ -151,7 +151,7 @@ def run_freeling(fl_instance, node, rawtext, newsnode=None):
             empty_output += 1
         else:
             empty_output = 0
-            # util.log.debug("FreeLing output:\n%s" % line.strip())
+            util.log.debug("FreeLing output:\n%s" % line.strip())
 
         # Reached end marker, all text processed!
         if re.match(END, line):
