@@ -31,10 +31,11 @@ def freeling_wrapper(in_file, out_file, conf_file, lang, sent_end="Fp", slevel="
         root = tree.getroot()
     except etree.ParseError:
         # Convert text document to XML
-        f = open(in_file, 'r').read()
-        text = '<text>\n' + f + '\n</text>'
-        root = etree.fromstring(text)
-        tree = etree.ElementTree(root)
+        with open(in_file, 'r') as of:
+            f = of.read()
+            text = '<text>\n' + f + '\n</text>'
+            root = etree.fromstring(text)
+            tree = etree.ElementTree(root)
 
     # Walk tree and send all text nodes to FreeLing
     if slevel:
