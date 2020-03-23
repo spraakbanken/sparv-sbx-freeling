@@ -6,6 +6,7 @@ import threading
 import queue
 import sparv.util as util
 
+# Random token to signal end of input
 END = b"27345327645267453684527685"
 
 
@@ -71,7 +72,7 @@ def process_sentence(sentence, annotations, index_counter, inputtext):
         match = re.match(r"\s*(%s)" % re.escape(token_annotation[1]), inputtext)
         if not match:
             match = re.match(r"\s*(%s)" % re.escape(re.sub("_", " ", token_annotation[1])), inputtext)
-        # What if there is still no match??
+        # TODO: What if there is still no match??
         span = match.span(1)
         word_span = (span[0] + index_counter, span[1] + index_counter)
         annotations["token_segments"].append(word_span)
@@ -139,9 +140,6 @@ def run_freeling(fl_instance, inputtext):
         # No errors, continue
         pass
 
-    processed_output = []
-    current_sentence = []
-
     stripped_text = re.sub("\n", " ", inputtext)
     util.log.debug("Sending input to FreeLing:\n%s" % stripped_text)
 
@@ -153,8 +151,15 @@ def run_freeling(fl_instance, inputtext):
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
     util.log.debug("Done sending input to FreeLing!")
 
-    # Read output line by line
+    return process_fl_output(fl_instance, stripped_text)
+
+
+def process_fl_output(fl_instance, text):
+    """Read and process Freeling output line by line."""
+    processed_output = []
+    current_sentence = []
     empty_output = 0
+
     for line in iter(fl_instance.process.stdout.readline, ""):
         # print("FL out: %s" % line.decode("UTF-8"))
 
@@ -176,7 +181,7 @@ def run_freeling(fl_instance, inputtext):
         if empty_output > 5:
             if not fl_instance.error:
                 util.log.warning("Something went wrong, FreeLing stopped responding.")
-            make_fallback_output(processed_output, stripped_text)
+            processed_output.append(make_fallback_output(text))
             fl_instance.restart()
             return
 
@@ -192,24 +197,23 @@ def run_freeling(fl_instance, inputtext):
 
         # Freeling returned some output, process it
         if len(line.rstrip()) > 0:
-            process_output(fl_instance, line, current_sentence)
+            current_sentence.append(make_token(fl_instance, line))
 
 
-def process_output(fl_instance, line, current_sentence):
+def make_token(fl_instance, line):
     """Process one line of FreeLing's output and extract relevant information."""
     fields = line.decode(util.UTF8).split(" ")
 
     if len(fields) >= 3:
+        # Create new word with attributes
         token = fields[0]
         lemma = fields[1]
         msd = fields[2]
         pos = util.msd_to_pos.convert(msd, fl_instance.lang)
+        return [(), token, pos, msd, lemma]
 
-        # Create new word with attributes
-        new_word = [(), token, pos, msd, lemma]
-
-        # Attach new word to current sentence
-        current_sentence.append(new_word)
+    else:
+        return [(), line.decode(util.UTF8), "", "", ""]
 
 
 #####################
@@ -231,13 +235,13 @@ def pump_input(pipe, lines):
     #     pipe.write(line + b"\n")
 
 
-def make_fallback_output(processed_output, inputtext):
+def make_fallback_output(inputtext):
     """Create output without annotations in case FreeLing crashes for a sentence."""
-    current_sentence = []
+    sentence = []
     words = inputtext.split()
     for w in words:
-        current_sentence.append([(), w.decode(util.UTF8), "", "", ""])
-    processed_output.append(current_sentence)
+        sentence.append([(), w.decode(util.UTF8), "", "", ""])
+    return sentence
 
 
 if __name__ == "__main__":
