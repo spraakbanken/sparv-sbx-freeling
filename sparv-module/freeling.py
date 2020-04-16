@@ -1,16 +1,34 @@
 """Do analysis with FreeLing."""
 
+import logging
+import queue
 import re
 import subprocess
 import threading
-import queue
+from typing import Optional
+
 import sparv.util as util
+from sparv import Annotation, Config, Document, Language, Model, Output, annotator
+
+log = logging.getLogger(__name__)
+
 
 # Random token to signal end of input
 END = b"27345327645267453684527685"
 
 
-def freeling_wrapper(doc, text, token, word, lemma, pos, msd, conf_file, lang, sentence=None, slevel=None):
+@annotator("Part-of-speech tags and baseforms from FreeLing")
+def annotate(doc: str = Document,
+             text: str = Annotation("<text>"),
+             lang: str = Language,
+             conf_file: str = Model("[freeling.conf=freeling/[language].cfg]"),
+             out_token: str = Output("freeling.token", cls="token", description="Token segments"),
+             out_word: str = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
+             out_baseform: str = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
+             out_pos: str = Output("<token>:freeling.pos", description="Part-of-speeches in UD"),
+             out_msd: str = Output("<token>:freeling.msd", description="Part-of-speeches from FreeLing"),
+             out_sentence: Optional[str] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
+             slevel: str = Config("freeling.slevel", None)):
     """
     Read an XML or text document and process the text with FreeLing.
 
@@ -32,7 +50,7 @@ def freeling_wrapper(doc, text, token, word, lemma, pos, msd, conf_file, lang, s
         "word_annotation": [],
         "pos_annotation": [],
         "msd_annotation": [],
-        "lemma_annotation": []
+        "baseform_annotation": []
     }
 
     # Go through all text elements and send text to FreeLing
@@ -54,13 +72,13 @@ def freeling_wrapper(doc, text, token, word, lemma, pos, msd, conf_file, lang, s
                 index_counter, inputtext = process_sentence(s, annotations, index_counter, inputtext)
 
     # Write annotations
-    util.write_annotation(doc, token, annotations["token_segments"])
-    util.write_annotation(doc, word, annotations["word_annotation"])
-    util.write_annotation(doc, pos, annotations["pos_annotation"])
-    util.write_annotation(doc, msd, annotations["msd_annotation"])
-    util.write_annotation(doc, lemma, annotations["lemma_annotation"])
+    util.write_annotation(doc, out_token, annotations["token_segments"])
+    util.write_annotation(doc, out_word, annotations["word_annotation"])
+    util.write_annotation(doc, out_pos, annotations["pos_annotation"])
+    util.write_annotation(doc, out_msd, annotations["msd_annotation"])
+    util.write_annotation(doc, out_baseform, annotations["baseform_annotation"])
     if not slevel:
-        util.write_annotation(doc, sentence, annotations["sentence_segments"])
+        util.write_annotation(doc, out_sentence, annotations["sentence_segments"])
 
     # Kill running subprocess
     fl_instance.kill()
@@ -79,7 +97,7 @@ def process_sentence(sentence, annotations, index_counter, inputtext):
         annotations["word_annotation"].append(token_annotation[1])
         annotations["pos_annotation"].append(token_annotation[2])
         annotations["msd_annotation"].append(token_annotation[3])
-        annotations["lemma_annotation"].append(token_annotation[4])
+        annotations["baseform_annotation"].append(token_annotation[4])
         # Forward inputtext
         inputtext = inputtext[span[1]:]
         index_counter += span[1]
@@ -134,14 +152,14 @@ def run_freeling(fl_instance, inputtext):
     # Read stderr without blocking
     try:
         line = fl_instance.qerr.get(timeout=.1)
-        util.log.warning("FreeLing error encountered: %s" % line)
+        log.error("FreeLing error encountered: %s", line)
         fl_instance.error = True
     except queue.Empty:
         # No errors, continue
         pass
 
     stripped_text = re.sub("\n", " ", inputtext)
-    util.log.debug("Sending input to FreeLing:\n%s" % stripped_text)
+    log.debug("Sending input to FreeLing:\n%s", stripped_text)
 
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
@@ -149,7 +167,7 @@ def run_freeling(fl_instance, inputtext):
 
     # Send input to FreeLing in thread (prevents blocking)
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
-    util.log.debug("Done sending input to FreeLing!")
+    log.debug("Done sending input to FreeLing!")
 
     return process_fl_output(fl_instance, stripped_text)
 
@@ -174,13 +192,13 @@ def process_fl_output(fl_instance, text):
             empty_output += 1
         else:
             empty_output = 0
-            util.log.debug("FreeLing output:\n%s" % line.strip())
+            log.debug("FreeLing output:\n%s", line.strip())
 
         # No output recieved in a while. Skip this node and restart FreeLing.
         # Multiple blank lines in input are ignored by FreeLing.
         if empty_output > 5:
             if not fl_instance.error:
-                util.log.warning("Something went wrong, FreeLing stopped responding.")
+                log.error("Something went wrong, FreeLing stopped responding.")
             processed_output.append(make_fallback_output(text))
             fl_instance.restart()
             return
@@ -242,7 +260,3 @@ def make_fallback_output(inputtext):
     for w in words:
         sentence.append([(), w.decode(util.UTF8), "", "", ""])
     return sentence
-
-
-if __name__ == "__main__":
-    util.run.main(freeling_wrapper)
