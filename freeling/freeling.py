@@ -17,11 +17,16 @@ log = logging.getLogger(__name__)
 END = b"27345327645267453684527685"
 
 
-@annotator("Part-of-speech tags and baseforms from FreeLing")
+@annotator("Part-of-speech tags and baseforms from FreeLing",
+           language=["cat", "deu", "eng", "spa", "fra", "glg", "ita", "nob", "por", "rus", "slv"],
+           config=[
+               Config("freeling.slevel", None),
+               Config("freeling.conf", "freeling/[language].cfg")
+           ])
 def annotate(doc: str = Document,
              text: str = Annotation("<text>"),
              lang: str = Language,
-             conf_file: str = Model("[freeling.conf=freeling/[language].cfg]"),
+             conf_file: str = Model("[freeling.conf]"),
              out_token: str = Output("freeling.token", cls="token", description="Token segments"),
              out_word: str = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
              out_baseform: str = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
@@ -120,6 +125,7 @@ class Freeling(object):
         self.slevel = slevel
         self.start()
         self.error = False
+        self.tagset = "penn" if self.lang == "eng" else "eagles"
 
     def start(self):
         """Start the external FreeLingTool."""
@@ -227,16 +233,16 @@ def make_token(fl_instance, line):
         token = fields[0]
         lemma = fields[1]
         msd = fields[2]
-        pos = util.msd_to_pos.convert(msd, fl_instance.lang)
+        pos = util.convert_to_upos(msd, fl_instance.lang, fl_instance.tagset)
         return [(), token, pos, msd, lemma]
 
     else:
         return [(), line.decode(util.UTF8), "", "", ""]
 
 
-#####################
-# Auxiliary functions
-#####################
+################################################################################
+# Auxiliaries
+################################################################################
 
 def enqueue_output(out, queue):
     """Auxiliary needed for reading without blocking."""
