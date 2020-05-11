@@ -30,15 +30,15 @@ def annotate(doc: str = Document,
              out_token: str = Output("freeling.token", cls="token", description="Token segments"),
              out_word: str = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
              out_baseform: str = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
-             out_pos: str = Output("<token>:freeling.pos", description="Part-of-speeches in UD"),
-             out_msd: str = Output("<token>:freeling.msd", description="Part-of-speeches from FreeLing"),
+             out_upos: str = Output("<token>:freeling.upos", cls="token:upos", description="Part-of-speeches in UD"),
+             out_pos: str = Output("<token>:freeling.pos", cls="token:pos", description="Part-of-speeches from FreeLing"),
              out_sentence: Optional[str] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
              slevel: str = Config("freeling.slevel", None)):
     """
     Read an XML or text document and process the text with FreeLing.
 
     - text: existing annotation with corpus text
-    - sentence, token, word, lemma, pos, msd: annotations to be created
+    - sentence, token, word, lemma, upos, pos: annotations to be created
     - conf_file: path to a language specific FreeLing CFG file
     - lang: the two-letter language code of the language to be analyzed
     - slevel: the sentence tag in the indata. Should only be set if the
@@ -53,8 +53,8 @@ def annotate(doc: str = Document,
         "sentence_segments": [],
         "token_segments": [],
         "word_annotation": [],
+        "upos_annotation": [],
         "pos_annotation": [],
-        "msd_annotation": [],
         "baseform_annotation": []
     }
 
@@ -79,8 +79,8 @@ def annotate(doc: str = Document,
     # Write annotations
     util.write_annotation(doc, out_token, annotations["token_segments"])
     util.write_annotation(doc, out_word, annotations["word_annotation"])
+    util.write_annotation(doc, out_upos, annotations["upos_annotation"])
     util.write_annotation(doc, out_pos, annotations["pos_annotation"])
-    util.write_annotation(doc, out_msd, annotations["msd_annotation"])
     util.write_annotation(doc, out_baseform, annotations["baseform_annotation"])
     if not slevel:
         util.write_annotation(doc, out_sentence, annotations["sentence_segments"])
@@ -100,8 +100,8 @@ def process_sentence(sentence, annotations, index_counter, inputtext):
         word_span = (span[0] + index_counter, span[1] + index_counter)
         annotations["token_segments"].append(word_span)
         annotations["word_annotation"].append(token_annotation[1])
-        annotations["pos_annotation"].append(token_annotation[2])
-        annotations["msd_annotation"].append(token_annotation[3])
+        annotations["upos_annotation"].append(token_annotation[2])
+        annotations["pos_annotation"].append(token_annotation[3])
         annotations["baseform_annotation"].append(token_annotation[4])
         # Forward inputtext
         inputtext = inputtext[span[1]:]
@@ -125,7 +125,7 @@ class Freeling(object):
         self.slevel = slevel
         self.start()
         self.error = False
-        self.tagset = "penn" if self.lang == "eng" else "eagles"
+        self.tagset = "Penn" if self.lang == "eng" else "EAGLES"
 
     def start(self):
         """Start the external FreeLingTool."""
@@ -232,9 +232,9 @@ def make_token(fl_instance, line):
         # Create new word with attributes
         token = fields[0]
         lemma = fields[1]
-        msd = fields[2]
-        pos = util.convert_to_upos(msd, fl_instance.lang, fl_instance.tagset)
-        return [(), token, pos, msd, lemma]
+        pos = fields[2]
+        upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
+        return [(), token, upos, pos, lemma]
 
     else:
         return [(), line.decode(util.UTF8), "", "", ""]
