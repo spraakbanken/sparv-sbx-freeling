@@ -48,15 +48,8 @@ def annotate(doc: str = Document,
     fl_instance = Freeling(conf_file, lang, slevel)
 
     corpus_text = util.read_corpus_text(doc)
-
-    annotations = {
-        "sentence_segments": [],
-        "token_segments": [],
-        "word_annotation": [],
-        "upos_annotation": [],
-        "pos_annotation": [],
-        "baseform_annotation": []
-    }
+    sentence_segments = []
+    all_tokens = []
 
     # Go through all text elements and send text to FreeLing
     if slevel:
@@ -64,7 +57,8 @@ def annotate(doc: str = Document,
         for sentence_span in sentences:
             inputtext = corpus_text[sentence_span[0]:sentence_span[1]]
             processed_output = run_freeling(fl_instance, inputtext)
-            process_sentence(processed_output, annotations, sentence_span[0], inputtext)
+            all_tokens.extend(processed_output)
+            process_sentence(processed_output, sentence_segments, sentence_span[0], inputtext)
 
     else:
         text_spans = util.read_annotation_spans(doc, text)
@@ -74,43 +68,39 @@ def annotate(doc: str = Document,
             # Go through output and try to match tokens with input text to get correct spans
             index_counter = text_span[0]
             for s in processed_output:
-                index_counter, inputtext = process_sentence(s, annotations, index_counter, inputtext)
+                all_tokens.extend(s)
+                index_counter, inputtext = process_sentence(s, sentence_segments, index_counter, inputtext)
 
     # Write annotations
-    util.write_annotation(doc, out_token, annotations["token_segments"])
-    util.write_annotation(doc, out_word, annotations["word_annotation"])
-    util.write_annotation(doc, out_upos, annotations["upos_annotation"])
-    util.write_annotation(doc, out_pos, annotations["pos_annotation"])
-    util.write_annotation(doc, out_baseform, annotations["baseform_annotation"])
+    util.write_annotation(doc, out_token, [(t.start, t.end) for t in all_tokens])
+    util.write_annotation(doc, out_word, [t.word for t in all_tokens])
+    util.write_annotation(doc, out_upos, [t.upos for t in all_tokens])
+    util.write_annotation(doc, out_pos, [t.pos for t in all_tokens])
+    util.write_annotation(doc, out_baseform, [t.baseform for t in all_tokens])
     if not slevel:
-        util.write_annotation(doc, out_sentence, annotations["sentence_segments"])
+        util.write_annotation(doc, out_sentence, sentence_segments)
 
     # Kill running subprocess
     fl_instance.kill()
 
 
-def process_sentence(sentence, annotations, index_counter, inputtext):
+def process_sentence(sentence, sentence_segments, index_counter, inputtext):
     """Extract and process annotations from sentence."""
-    for token_annotation in sentence:
-        match = re.match(r"\s*(%s)" % re.escape(token_annotation[1]), inputtext)
+    for token in sentence:
+        # Get token span
+        match = re.match(r"\s*(%s)" % re.escape(token.word), inputtext)
         if not match:
-            match = re.match(r"\s*(%s)" % re.escape(re.sub("_", " ", token_annotation[1])), inputtext)
+            match = re.match(r"\s*(%s)" % re.escape(re.sub("_", " ", token.word)), inputtext)
         # TODO: What if there is still no match??
         span = match.span(1)
-        word_span = (span[0] + index_counter, span[1] + index_counter)
-        annotations["token_segments"].append(word_span)
-        annotations["word_annotation"].append(token_annotation[1])
-        annotations["upos_annotation"].append(token_annotation[2])
-        annotations["pos_annotation"].append(token_annotation[3])
-        annotations["baseform_annotation"].append(token_annotation[4])
+        token.start = span[0] + index_counter
+        token.end = span[1] + index_counter
         # Forward inputtext
         inputtext = inputtext[span[1]:]
         index_counter += span[1]
-        # Store word spans in token_annotation in order to be able to extract sentence spans later
-        token_annotation[0] = word_span
 
     # Extract sentence span for current sentence
-    annotations["sentence_segments"].append((sentence[0][0][0], sentence[-1][0][1]))
+    sentence_segments.append((sentence[0].start, sentence[-1].end))
 
     return index_counter, inputtext
 
@@ -230,19 +220,32 @@ def make_token(fl_instance, line):
 
     if len(fields) >= 3:
         # Create new word with attributes
-        token = fields[0]
-        lemma = fields[1]
+        word = fields[0]
+        baseform = fields[1]
         pos = fields[2]
         upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
-        return [(), token, upos, pos, lemma]
+        return Token(word, pos, upos, baseform)
 
     else:
-        return [(), line.decode(util.UTF8), "", "", ""]
+        return Token(line.decode(util.UTF8), "", "", "")
 
 
 ################################################################################
 # Auxiliaries
 ################################################################################
+
+class Token(object):
+    """Object to store annotation information for a token."""
+
+    def __init__(self, word, pos, upos, baseform, start=-1, end=-1):
+        """Set attributes."""
+        self.word = word
+        self.pos = pos
+        self.upos = upos
+        self.baseform = baseform
+        self.start = start
+        self.end = end
+
 
 def enqueue_output(out, queue):
     """Auxiliary needed for reading without blocking."""
@@ -264,5 +267,6 @@ def make_fallback_output(inputtext):
     sentence = []
     words = inputtext.split()
     for w in words:
-        sentence.append([(), w.decode(util.UTF8), "", "", ""])
+        token = Token(w.decode(util.UTF8), "", "", "")
+        sentence.append(token)
     return sentence
