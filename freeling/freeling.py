@@ -16,9 +16,20 @@ log = logging.getLogger(__name__)
 # Random token to signal end of input
 END = b"27345327645267453684527685"
 
+# FreeLings named entity types
+NER_DICT = {
+    "G": "location",
+    "O": "organization",
+    "V": "other",
+    "S": "person"
+}
 
-@annotator("Part-of-speech tags and baseforms from FreeLing",
-           language=["cat", "deu", "eng", "spa", "fra", "glg", "ita", "nob", "por", "rus", "slv"],
+# Languages supporting Named entity classification ("--nec" and "--ner" flags)
+NEC_LANGS = ["cat", "eng", "spa", "por"]
+
+
+@annotator("POS tags and baseforms from FreeLing",
+           language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"],
            config=[
                Config("freeling.slevel", None),
                Config("freeling.conf", "freeling/[language].cfg")
@@ -31,19 +42,45 @@ def annotate(doc: str = Document,
              out_word: str = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
              out_baseform: str = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
              out_upos: str = Output("<token>:freeling.upos", cls="token:upos", description="Part-of-speeches in UD"),
-             out_pos: str = Output("<token>:freeling.pos", cls="token:pos", description="Part-of-speeches from FreeLing"),
+             out_pos: str = Output("<token>:freeling.pos", cls="token:pos",
+                                   description="Part-of-speeches from FreeLing"),
              out_sentence: Optional[str] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
              slevel: str = Config("freeling.slevel", None)):
-    """
-    Read an XML or text document and process the text with FreeLing.
+    """Run FreeLing and output sentences, tokens, baseforms, upos and pos."""
+    main(doc, text, lang, conf_file, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, slevel)
 
-    - text: existing annotation with corpus text
-    - sentence, token, word, lemma, upos, pos: annotations to be created
-    - conf_file: path to a language specific FreeLing CFG file
-    - lang: the two-letter language code of the language to be analyzed
-    - slevel: the sentence tag in the indata. Should only be set if the
-      material already has sentence-level annotations
-    """
+
+@annotator("POS tags, baseforms and named entities from FreeLing",
+           language=["cat", "deu", "eng", "spa", "por"],
+           config=[
+               Config("freeling.slevel", None),
+               Config("freeling.conf", "freeling/[language].cfg")
+           ])
+def annotate_full(doc: str = Document,
+                  text: str = Annotation("<text>"),
+                  lang: str = Language,
+                  conf_file: str = Model("[freeling.conf]"),
+                  out_token: str = Output("freeling.token", cls="token", description="Token segments"),
+                  out_word: str = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
+                  out_baseform: str = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
+                  out_upos: str = Output("<token>:freeling.upos", cls="token:upos",
+                                         description="Part-of-speeches in UD"),
+                  out_pos: str = Output("<token>:freeling.pos", cls="token:pos",
+                                        description="Part-of-speeches from FreeLing"),
+                  out_ne_type: str = Output("<token>:freeling.ne_type", cls="named_entity_type",
+                                            description="Named entitiy types from FreeLing"),
+                  out_sentence: Optional[str] = Output("freeling.sentence", cls="sentence",
+                                                       description="Sentence segments"),
+                  slevel: str = Config("freeling.slevel", None)):
+    """Run FreeLing and output the usual annotations plus named entity types."""
+    main(doc, text, lang, conf_file, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, slevel, out_ne_type)
+
+
+def main(doc, text, lang, conf_file, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, slevel, out_ne_type=None):
+    """Read an XML or text document and process the text with FreeLing."""
     # Init FreeLing as child process
     fl_instance = Freeling(conf_file, lang, slevel)
 
@@ -77,6 +114,8 @@ def annotate(doc: str = Document,
     util.write_annotation(doc, out_upos, [t.upos for t in all_tokens])
     util.write_annotation(doc, out_pos, [t.pos for t in all_tokens])
     util.write_annotation(doc, out_baseform, [t.baseform for t in all_tokens])
+    if out_ne_type:
+        util.write_annotation(doc, out_ne_type, [t.name_type for t in all_tokens])
     if not slevel:
         util.write_annotation(doc, out_sentence, sentence_segments)
 
@@ -119,7 +158,11 @@ class Freeling(object):
 
     def start(self):
         """Start the external FreeLingTool."""
-        self.process = subprocess.Popen(["analyze", "-f", self.conf_file, "--flush"],
+        ne_flags = []
+        # Do named entitiy recognition and classification if supported for language
+        if self.lang in NEC_LANGS:
+            ne_flags = ["--ner", "--nec"]
+        self.process = subprocess.Popen(["analyze", *ne_flags, "-f", self.conf_file, "--flush"],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -197,7 +240,7 @@ def process_fl_output(fl_instance, text):
                 log.error("Something went wrong, FreeLing stopped responding.")
             processed_output.append(make_fallback_output(text))
             fl_instance.restart()
-            return
+            return []
 
         # Reached end marker, all text processed!
         if re.match(END, line):
@@ -220,11 +263,16 @@ def make_token(fl_instance, line):
 
     if len(fields) >= 3:
         # Create new word with attributes
-        word = fields[0]
+        word = fields[0].replace("_", " ")
         baseform = fields[1]
         pos = fields[2]
         upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
-        return Token(word, pos, upos, baseform)
+        # Detect named entities
+        if pos.startswith("NP") and len(pos) >= 4:
+            name_type = NER_DICT.get(pos[4], "other")
+        else:
+            name_type = ""
+        return Token(word, pos, upos, baseform, name_type)
 
     else:
         return Token(line.decode(util.UTF8), "", "", "")
@@ -237,12 +285,13 @@ def make_token(fl_instance, line):
 class Token(object):
     """Object to store annotation information for a token."""
 
-    def __init__(self, word, pos, upos, baseform, start=-1, end=-1):
+    def __init__(self, word, pos, upos, baseform, name_type="", start=-1, end=-1):
         """Set attributes."""
         self.word = word
         self.pos = pos
         self.upos = upos
         self.baseform = baseform
+        self.name_type = name_type
         self.start = start
         self.end = end
 
@@ -267,6 +316,6 @@ def make_fallback_output(inputtext):
     sentence = []
     words = inputtext.split()
     for w in words:
-        token = Token(w.decode(util.UTF8), "", "", "")
+        token = Token(w, "", "", "")
         sentence.append(token)
     return sentence
