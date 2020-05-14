@@ -88,3 +88,28 @@ Result file (`export.original/mycorpus.xml`):
   </text>
 </corpus>
 ```
+
+
+# Additional Info about Annotations
+
+This Sparv extension provides support for sentence segmentation, tokenisation, baseform analysis and POS-tagging for 12 different languages. Furthermore the Sparv converts the POS-tags into [Universal POS tags](https://universaldependencies.org/u/pos/) and outputs them as a separate entity. The extension can also ouput named entitiy types for five of these languages. A full list of what analyses are supported for what languages can be found here:
+
+https://freeling-user-manual.readthedocs.io/en/latest/basics/#supported-languages
+
+## Integrating dependency parsing
+
+FreeLing supports dependency parsing for some languages. The output format is a bit cumbersome though.
+
+Input:
+`This is a sentence.`
+
+Output:
+`DT/top/(This this DT -) [
+  vb-be/modnorule/(is be VBZ -)
+  sn-chunk/modnorule/(sentence sentence NN -) [
+    DT/det/(a a DT -)
+  ]
+  st-brk/modnorule/(. . Fp -)
+]`
+
+It is possible to write a new parser to handle this format but so far this has not been a priority for us.
