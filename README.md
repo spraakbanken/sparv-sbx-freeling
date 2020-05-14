@@ -1,9 +1,10 @@
 # sparv-freeling
 
 Extension for Sparv containing a wrapper for [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
-This allows you to run the Sparv pipeline and get segmentation, lemmas,
+This allows you to run the Sparv pipeline and get sentence segmentation, tokenisation, baseform analysis, 
 and part-of-speech annotations for the following languages:
 
+* Asturian
 * Catalan
 * English
 * French
@@ -16,6 +17,10 @@ and part-of-speech annotations for the following languages:
 * Slovenian
 * Spanish
 
+Furthermore Sparv will convert the FreeLing POS-tags into [Universal POS tags](https://universaldependencies.org/u/pos/)
+and output them as a separate annotation.
+
+Some of these languages (Catalan, English, German, Portuguese and Spanish) also support named-entity recognition.
 
 ## Installation
 
@@ -25,9 +30,9 @@ and part-of-speech annotations for the following languages:
 
 ## Usage
 
-The Sparv pipeline is run by executing a Makefile for a given corpus.
+The Sparv pipeline needs a config file describing your corpus and the desired output format.
 
-Example corpus (`mycorpus.xml`):
+Example corpus (`original/myfile.xml`):
 
 ```
 <text title="Example">
@@ -35,64 +40,47 @@ Example corpus (`mycorpus.xml`):
 </text>
 ```
 
-Example Makefile:
-```
-include $(SPARV_MAKEFILES)/Makefile.config
-corpus = example
-lang = en
-analysis = fl
+Example config file (`config.yaml`):
 
-vrt_columns_annotations = word pos msd baseform
-vrt_columns             = word pos msd lemma   
-
-vrt_structs_annotations = sentence.id text text.title
-vrt_structs             = sentence:id text text:title
-
-xml_elements    = text text:title s        w     w:pos     w:msd     w:lemma       
-xml_annotations = text text.title sentence token token.pos token.msd token.baseform
-
-include $(SPARV_MAKEFILES)/Makefile.rules
-```
+TODO!
 
 Example folder structure:
 
 ```
 mycorpus/
-    Makefile
+    config.yaml
     original/
-        xml/
-            mycorpus.xml
+        myfile.xml
 ```
 
 
 Command for creating xml with annotations:
 
-    make export mycorpus
+    sparv run
 
-Result file (`export.original/mycorpus.xml`):
+Result file (`export/xml_original/myfile_export.xml`):
 ```
-<corpus>
-  <text title="Example">
-    <sentence id="enc022-enc5ca">
-      <w pos="DET" msd="DT" lemma="this">This</w>
-      <w pos="VERB" msd="VBZ" lemma="be">is</w>
-      <w pos="DET" msd="DT" lemma="a">an</w>
-      <w pos="NOUN" msd="NN" lemma="example">example</w>
-      <w pos="ADP" msd="IN" lemma="for">for</w>
-      <w pos="ADV" msd="WRB" lemma="how">how</w>
-      <w pos="PART" msd="TO" lemma="to">to</w>
-      <w pos="VERB" msd="VB" lemma="run">run</w>
-      <w pos="PROPN" msd="NP" lemma="sparv">Sparv</w>
-      <w pos="PUNCT" msd="Fp" lemma=".">.</w>
-    </sentence>
-  </text>
-</corpus>
+<?xml version="1.0" encoding="UTF-8"?>
+<text lix="20.00" title="Example">
+  <sentence>
+    <token baseform="this" ne_type="" pos="DT" upos="DET">This</token>
+    <token baseform="be" ne_type="" pos="VBZ" upos="VERB">is</token>
+    <token baseform="a" ne_type="" pos="DT" upos="DET">an</token>
+    <token baseform="example" ne_type="" pos="NN" upos="NOUN">example</token>
+    <token baseform="for" ne_type="" pos="IN" upos="ADP">for</token>
+    <token baseform="how" ne_type="" pos="WRB" upos="ADV">how</token>
+    <token baseform="to" ne_type="" pos="TO" upos="PART">to</token>
+    <token baseform="run" ne_type="" pos="VB" upos="VERB">run</token>
+    <token baseform="sparv" ne_type="person" pos="NP00SP0" upos="PROPN">Sparv</token>
+    <token baseform="." ne_type="" pos="Fp" upos="PUNCT">.</token>
+  </sentence>
+</text>
 ```
 
 
 # Additional Info about Annotations
 
-This Sparv extension provides support for sentence segmentation, tokenisation, baseform analysis and POS-tagging for 12 different languages. Furthermore the Sparv converts the POS-tags into [Universal POS tags](https://universaldependencies.org/u/pos/) and outputs them as a separate entity. The extension can also ouput named entitiy types for five of these languages. A full list of what analyses are supported for what languages can be found here:
+A full list of what analyses are supported for what languages can be found here:
 
 https://freeling-user-manual.readthedocs.io/en/latest/basics/#supported-languages
 
