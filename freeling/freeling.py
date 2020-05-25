@@ -32,7 +32,7 @@ NEC_LANGS = ["cat", "eng", "spa", "por"]
            language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"],
            config=[
                Config("freeling.slevel", None),
-               Config("freeling.conf", "freeling/[language].cfg")
+               Config("freeling.conf", "freeling/[metadata.language].cfg")
            ])
 def annotate(doc: str = Document,
              text: str = Annotation("<text>"),
@@ -55,7 +55,7 @@ def annotate(doc: str = Document,
            language=["cat", "deu", "eng", "spa", "por"],
            config=[
                Config("freeling.slevel", None),
-               Config("freeling.conf", "freeling/[language].cfg")
+               Config("freeling.conf", "freeling/[metadata.language].cfg")
            ])
 def annotate_full(doc: str = Document,
                   text: str = Annotation("<text>"),
