@@ -1,7 +1,10 @@
 # sparv-freeling
 
-Extension for Sparv containing a wrapper for [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
-This allows you to run the Sparv pipeline and get sentence segmentation, tokenisation, baseform analysis, 
+This is a plugin for the [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline) 
+containing a wrapper for [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
+Please observe that this plugin has a more restrictive license than the Sparv piepeline!
+
+This plugin allows you to run the Sparv pipeline and get sentence segmentation, tokenisation, baseform analysis, 
 and part-of-speech annotations for the following languages:
 
 * Asturian
@@ -22,11 +25,23 @@ and output them as a separate annotation.
 
 Some of these languages (Catalan, English, German, Portuguese and Spanish) also support named-entity recognition.
 
+## Prerequisites
+
+* [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline)
+* [FreeLing 4.1](https://github.com/TALP-UPC/FreeLing/releases/tag/4.1)
+* [Python 3.6](http://python.org/) or newer
+* [pip](https://pip.pypa.io/en/stable/installing)
+
+
 ## Installation
 
-* Download and install the [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline).
-* Download and install [FreeLing 4.1](https://github.com/TALP-UPC/FreeLing/releases/tag/4.1).
-* Copy the `freeling` directory into the `sparv/modules` directory of your Sparv installation.
+1. Download the sparv-freeling repository:
+
+    `git clone git@github.com:spraakbanken/sparv-freeling.git`
+
+2. Install the sparv-freeling plugin with pipx:
+
+    `pipx inject sparv-pipeline ./sparv-freeling`
 
 ## Usage
 
@@ -58,7 +73,7 @@ Command for creating xml with annotations:
 
     sparv run
 
-Result file (`export/xml_original/myfile_export.xml`):
+Result file (`export/xml/myfile_export.xml`):
 ```
 <?xml version="1.0" encoding="UTF-8"?>
 <text lix="20.00" title="Example">
