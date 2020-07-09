@@ -78,16 +78,16 @@ Result file (`export/xml/myfile_export.xml`):
 <?xml version="1.0" encoding="UTF-8"?>
 <text lix="20.00" title="Example">
   <sentence>
-    <token baseform="this" ne_type="" pos="DT" upos="DET">This</token>
-    <token baseform="be" ne_type="" pos="VBZ" upos="VERB">is</token>
-    <token baseform="a" ne_type="" pos="DT" upos="DET">an</token>
-    <token baseform="example" ne_type="" pos="NN" upos="NOUN">example</token>
-    <token baseform="for" ne_type="" pos="IN" upos="ADP">for</token>
-    <token baseform="how" ne_type="" pos="WRB" upos="ADV">how</token>
-    <token baseform="to" ne_type="" pos="TO" upos="PART">to</token>
-    <token baseform="run" ne_type="" pos="VB" upos="VERB">run</token>
+    <token baseform="this" pos="DT" upos="DET">This</token>
+    <token baseform="be" pos="VBZ" upos="VERB">is</token>
+    <token baseform="a" pos="DT" upos="DET">an</token>
+    <token baseform="example" pos="NN" upos="NOUN">example</token>
+    <token baseform="for" pos="IN" upos="ADP">for</token>
+    <token baseform="how" pos="WRB" upos="ADV">how</token>
+    <token baseform="to" pos="TO" upos="PART">to</token>
+    <token baseform="run" pos="VB" upos="VERB">run</token>
     <token baseform="sparv" ne_type="person" pos="NP00SP0" upos="PROPN">Sparv</token>
-    <token baseform="." ne_type="" pos="Fp" upos="PUNCT">.</token>
+    <token baseform="." pos="Fp" upos="PUNCT">.</token>
   </sentence>
 </text>
 ```
@@ -104,15 +104,18 @@ https://freeling-user-manual.readthedocs.io/en/latest/basics/#supported-language
 FreeLing supports dependency parsing for some languages. The output format is a bit cumbersome though.
 
 Input:
+
 `This is a sentence.`
 
 Output:
-`DT/top/(This this DT -) [
+```
+DT/top/(This this DT -) [
   vb-be/modnorule/(is be VBZ -)
   sn-chunk/modnorule/(sentence sentence NN -) [
     DT/det/(a a DT -)
   ]
   st-brk/modnorule/(. . Fp -)
-]`
+]
+```
 
 It is possible to write a new parser to handle this format but so far this has not been a priority for us.
