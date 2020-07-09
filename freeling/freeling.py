@@ -116,8 +116,8 @@ def main(text, corpus_text, lang, conf_file, out_token, out_word, out_baseform, 
     out_baseform.write([t.baseform for t in all_tokens])
     if out_ne_type:
         out_ne_type.write([t.name_type for t in all_tokens])
-    if not slevel:
-        out_sentence.write(sentence_segments)
+    # TODO: Sparv does not support optional outputs yet, so always write out_sentence, even if it's empty
+    out_sentence.write(sentence_segments)
 
     # Kill running subprocess
     fl_instance.kill()
