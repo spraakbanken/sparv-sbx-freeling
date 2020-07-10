@@ -163,7 +163,7 @@ class Freeling:
         # Do named entitiy recognition and classification if supported for language
         if self.lang in NEC_LANGS:
             ne_flags = ["--ner", "--nec"]
-        self.process = subprocess.Popen(["analyze", *ne_flags, "-f", self.conf_file, "--flush"],
+        self.process = subprocess.Popen(["analyze", *ne_flags, "--outlv morfo", "-f", self.conf_file, "--flush"],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -267,7 +267,13 @@ def make_token(fl_instance, line):
         word = fields[0].replace("_", " ")
         baseform = fields[1]
         pos = fields[2]
-        upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
+
+        # Sometimes a token can have multiple parts-of-speech tags
+        upos = []
+        for p in pos.split("+"):
+            upos.append(util.convert_to_upos(p, fl_instance.lang, fl_instance.tagset))
+        upos = "+".join(upos)
+
         # Detect named entities
         if pos.startswith("NP") and len(pos) >= 4:
             name_type = NER_DICT.get(pos[4], "other")
