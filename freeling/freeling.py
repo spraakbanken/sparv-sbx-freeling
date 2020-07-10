@@ -1,6 +1,5 @@
 """Do analysis with FreeLing."""
 
-import logging
 import queue
 import re
 import subprocess
@@ -10,7 +9,7 @@ from typing import Optional
 import sparv.util as util
 from sparv import Annotation, Config, Language, Model, Output, Text, annotator
 
-log = logging.getLogger(__name__)
+log = util.get_logger(__name__)
 
 
 # Random token to signal end of input
@@ -129,8 +128,10 @@ def process_sentence(sentence, sentence_segments, index_counter, inputtext):
         # Get token span
         match = re.match(r"\s*(%s)" % re.escape(token.word), inputtext)
         if not match:
-            match = re.match(r"\s*(%s)" % re.escape(re.sub("_", " ", token.word)), inputtext)
-        # TODO: What if there is still no match??
+            match = re.match(r"\s*(%s)" % re.sub(r"\\ ", r"\\s+", re.escape(token.word)), inputtext)
+        if not match:
+            log.error(f"No match for token {repr(token.word)} in text '{inputtext[:20]}...'!")
+            # TODO: What do we do now?
         span = match.span(1)
         token.start = span[0] + index_counter
         token.end = span[1] + index_counter
@@ -198,7 +199,7 @@ def run_freeling(fl_instance, inputtext):
         pass
 
     stripped_text = re.sub("\n", " ", inputtext)
-    log.debug("Sending input to FreeLing:\n%s", stripped_text)
+    log.debug("Sending input to FreeLing:\n" + stripped_text)
 
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
@@ -231,7 +232,7 @@ def process_fl_output(fl_instance, text):
             empty_output += 1
         else:
             empty_output = 0
-            log.debug("FreeLing output:\n%s", line.strip())
+            log.debug("FreeLing output:\n" + line.decode().strip())
 
         # No output recieved in a while. Skip this node and restart FreeLing.
         # Multiple blank lines in input are ignored by FreeLing.

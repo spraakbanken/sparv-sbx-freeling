@@ -43,6 +43,13 @@ Some of these languages (Catalan, English, German, Portuguese and Spanish) also 
 
     `pipx inject sparv-pipeline ./sparv-freeling`
 
+    **or** install the plugin in your sparv-pipeline virtual environment:
+
+   ```
+   source [path to sparv-pipeline virtual environment]/bin/activate
+   pip install [path to sparv-freeling directory]
+   ```
+
 ## Usage
 
 The Sparv pipeline needs a config file describing your corpus and the desired output format.
