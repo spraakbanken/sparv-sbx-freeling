@@ -1,5 +1,6 @@
 """Do analysis with FreeLing."""
 
+import json
 import queue
 import re
 import subprocess
@@ -14,14 +15,6 @@ log = util.get_logger(__name__)
 
 # Random token to signal end of input
 END = b"27345327645267453684527685"
-
-# FreeLings named entity types
-NER_DICT = {
-    "G": "location",
-    "O": "organization",
-    "V": "other",
-    "S": "person"
-}
 
 # Languages supporting Named entity classification ("--nec" and "--ner" flags)
 NEC_LANGS = ["cat", "eng", "spa", "por"]
@@ -86,26 +79,28 @@ def main(text, corpus_text, lang, conf_file, out_token, out_word, out_baseform, 
     text_data = corpus_text.read()
     sentence_segments = []
     all_tokens = []
+    last_position = 0
 
     # Go through all text elements and send text to FreeLing
     if slevel:
         sentences_spans = slevel.read_spans()
         for sentence_span in sentences_spans:
             inputtext = text_data[sentence_span[0]:sentence_span[1]]
-            processed_output = run_freeling(fl_instance, inputtext)
+            freeling_output = run_freeling(fl_instance, inputtext)
+            processed_output, last_position = process_json(
+                fl_instance, freeling_output, inputtext, sentence_span[0], last_position)
             all_tokens.extend(processed_output)
-            process_sentence(processed_output, sentence_segments, sentence_span[0], inputtext)
 
     else:
         text_spans = text.read_spans()
         for text_span in text_spans:
             inputtext = text_data[text_span[0]:text_span[1]]
-            processed_output = run_freeling(fl_instance, inputtext)
-            # Go through output and try to match tokens with input text to get correct spans
-            index_counter = text_span[0]
+            freeling_output = run_freeling(fl_instance, inputtext)
+            processed_output, last_position = process_json(
+                fl_instance, freeling_output, inputtext, text_span[0], last_position)
             for s in processed_output:
                 all_tokens.extend(s)
-                index_counter, inputtext = process_sentence(s, sentence_segments, index_counter, inputtext)
+                sentence_segments.append((s[0].start, s[-1].end))
 
     # Write annotations
     out_token.write([(t.start, t.end) for t in all_tokens])
@@ -120,29 +115,6 @@ def main(text, corpus_text, lang, conf_file, out_token, out_word, out_baseform, 
 
     # Kill running subprocess
     fl_instance.kill()
-
-
-def process_sentence(sentence, sentence_segments, index_counter, inputtext):
-    """Extract and process annotations from sentence."""
-    for token in sentence:
-        # Get token span
-        match = re.match(r"\s*(%s)" % re.escape(token.word), inputtext)
-        if not match:
-            match = re.match(r"\s*(%s)" % re.sub(r"\\ ", r"\\s+", re.escape(token.word)), inputtext)
-        if not match:
-            log.error(f"No match for token {repr(token.word)} in text '{inputtext[:20]}...'!")
-            # TODO: What do we do now?
-        span = match.span(1)
-        token.start = span[0] + index_counter
-        token.end = span[1] + index_counter
-        # Forward inputtext
-        inputtext = inputtext[span[1]:]
-        index_counter += span[1]
-
-    # Extract sentence span for current sentence
-    sentence_segments.append((sentence[0].start, sentence[-1].end))
-
-    return index_counter, inputtext
 
 
 class Freeling:
@@ -163,7 +135,8 @@ class Freeling:
         # Do named entitiy recognition and classification if supported for language
         if self.lang in NEC_LANGS:
             ne_flags = ["--ner", "--nec"]
-        self.process = subprocess.Popen(["analyze", *ne_flags, "--outlv morfo", "-f", self.conf_file, "--flush"],
+        self.process = subprocess.Popen(["analyze", *ne_flags, "--outlv tagged", "--output json",
+                                         "-f", self.conf_file, "--flush"],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -199,7 +172,7 @@ def run_freeling(fl_instance, inputtext):
         pass
 
     stripped_text = re.sub("\n", " ", inputtext)
-    log.debug("Sending input to FreeLing:\n" + stripped_text)
+    # log.debug("Sending input to FreeLing:\n" + stripped_text)
 
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
@@ -209,80 +182,87 @@ def run_freeling(fl_instance, inputtext):
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
     log.debug("Done sending input to FreeLing!")
 
-    return process_fl_output(fl_instance, stripped_text)
+    return process_lines(fl_instance, stripped_text)
 
 
-def process_fl_output(fl_instance, text):
+def process_lines(fl_instance, text):
     """Read and process Freeling output line by line."""
     processed_output = []
-    current_sentence = []
     empty_output = 0
 
     for line in iter(fl_instance.process.stdout.readline, ""):
-        # print("FL out: %s" % line.decode("UTF-8"))
-
-        # If this ends a sentence, attach sentence to output, and start a new (empty) sentence
-        if not fl_instance.slevel and line == b"\n":
-            if len(list(current_sentence)) > 0:
-                processed_output.append(current_sentence)
-            current_sentence = []
-
         # Many empty output lines probably mean that Freeling died
         if not line.strip():
             empty_output += 1
         else:
             empty_output = 0
+            processed_output.append(line.decode())
             log.debug("FreeLing output:\n" + line.decode().strip())
 
         # No output recieved in a while. Skip this node and restart FreeLing.
-        # Multiple blank lines in input are ignored by FreeLing.
+        # (Multiple blank lines in input are ignored by FreeLing.)
         if empty_output > 5:
             if not fl_instance.error:
                 log.error("Something went wrong, FreeLing stopped responding.")
-            processed_output.append(make_fallback_output(text))
             fl_instance.restart()
             return []
 
         # Reached end marker, all text processed!
-        if re.match(END, line):
-            if fl_instance.slevel:
-                return current_sentence
-            else:
-                # Add current_sentence to processed_output
-                if len(current_sentence) > 0:
-                    processed_output.append(current_sentence)
-                return processed_output
-
-        # Freeling returned some output, process it
-        if len(line.rstrip()) > 0:
-            current_sentence.append(make_token(fl_instance, line))
+        if re.search(END, line):
+            return processed_output
 
 
-def make_token(fl_instance, line):
-    """Process one line of FreeLing's output and extract relevant information."""
-    fields = line.decode(util.UTF8).split(" ")
+def process_json(fl_instance, json_lines, inputtext, start_pos, last_position):
+    """Process json output from FreeLing into sentences and tokens."""
+    sentences = []
+    current_sentence = []
 
-    if len(fields) >= 3:
-        # Create new word with attributes
-        word = fields[0].replace("_", " ")
-        baseform = fields[1]
-        pos = fields[2]
+    json_lines = "".join(json_lines)
+    decoder = json.JSONDecoder()
+    text = json_lines.lstrip()
+    while text:
+        obj, index = decoder.raw_decode(text)
+        text = text[index:].lstrip()
+        for sentence in obj.get("sentences", []):
 
-        # Sometimes a token can have multiple parts-of-speech tags
-        upos = []
-        for p in pos.split("+"):
-            upos.append(util.convert_to_upos(p, fl_instance.lang, fl_instance.tagset))
-        upos = "+".join(upos)
+            if len(current_sentence):
+                sentences.append(current_sentence)
+                current_sentence = []
 
-        # Detect named entities
-        if pos.startswith("NP") and len(pos) >= 4:
-            name_type = NER_DICT.get(pos[4], "other")
-        else:
-            name_type = ""
-        return Token(word, pos, upos, baseform, name_type)
+            for token in sentence.get("tokens", []):
+                if token.get("form") == END.decode():
+                    # Store the last end position of the chunk
+                    last_position = int(token.get("end")) + 1
+                else:
+                    current_sentence.append(make_token(fl_instance, token, inputtext, start_pos, last_position))
 
+    # Append last sentence
+    if len(current_sentence):
+        sentences.append(current_sentence)
+
+    # In case of slevel: flatten sentences to a single sentence
+    if fl_instance.slevel:
+        return [t for s in sentences for t in s], last_position
     else:
-        return Token(line.decode(util.UTF8), "", "", "")
+        return sentences, last_position
+
+
+def make_token(fl_instance, json_token, inputtext, start_pos, last_position):
+    """Process one FreeLing token and extract relevant information."""
+    start = int(json_token.get("begin", -1)) - last_position
+    end = int(json_token.get("end", -1)) - last_position
+    word = inputtext[start:end]
+
+    start = start_pos + start
+    end = start_pos + end
+    # log.debug(f"\n{inputtext}\n{word} {start}-{end}")
+
+    baseform = json_token.get("lemma", "")
+    pos = json_token.get("tag", "")
+    upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
+    name_type = json_token.get("neclass", "")
+
+    return Token(word, pos, upos, baseform, name_type, start, end)
 
 
 ################################################################################
@@ -302,6 +282,9 @@ class Token:
         self.start = start
         self.end = end
 
+    def __repr__(self):
+        return f"{self.word} <{self.baseform} {self.pos} {self.upos} {self.name_type}> ({self.start}-{self.end})"
+
 
 def enqueue_output(out, queue):
     """Auxiliary needed for reading without blocking."""
@@ -316,13 +299,3 @@ def pump_input(pipe, lines):
     # # If module stops working, maybe try splitting lines
     # for line in lines.split(b"\n"):
     #     pipe.write(line + b"\n")
-
-
-def make_fallback_output(inputtext):
-    """Create output without annotations in case FreeLing crashes for a sentence."""
-    sentence = []
-    words = inputtext.split()
-    for w in words:
-        token = Token(w, "", "", "")
-        sentence.append(token)
-    return sentence
