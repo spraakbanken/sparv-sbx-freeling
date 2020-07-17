@@ -140,8 +140,9 @@ class Freeling:
         # Do named entitiy recognition and classification if supported for language
         if self.lang in NEC_LANGS:
             ne_flags = ["--ner", "--nec"]
+        # Flags --nortkcon --nortk prevent FreeLing from splitting contractions
         self.process = subprocess.Popen([self.binary, *ne_flags, "--outlv tagged", "--output json",
-                                         "-f", self.conf_file, "--flush"],
+                                         "--nortkcon", "--nortk", "-f", self.conf_file, "--flush"],
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
@@ -264,7 +265,10 @@ def make_token(fl_instance, json_token, inputtext, start_pos, last_position):
 
     baseform = json_token.get("lemma", "")
     pos = json_token.get("tag", "")
-    upos = util.convert_to_upos(pos, fl_instance.lang, fl_instance.tagset)
+    upos = []
+    for p in pos.split("+"):
+        upos.append(util.convert_to_upos(p, fl_instance.lang, fl_instance.tagset))
+    upos = "+".join(upos)
     name_type = json_token.get("neclass", "")
 
     return Token(word, pos, upos, baseform, name_type, start, end)
