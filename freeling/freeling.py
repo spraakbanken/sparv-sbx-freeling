@@ -24,14 +24,16 @@ NEC_LANGS = ["cat", "eng", "spa", "por"]
            language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"],
            config=[
                Config("freeling.binary", "analyze"),
-               Config("freeling.slevel", ""),
-               Config("freeling.conf", "freeling/[metadata.language].cfg")
+               Config("freeling.conf", "freeling/[metadata.language].cfg"),
+               Config("freeling.sentence_chunk", "<text>"),
+               Config("freeling.sentence_annotation", "")
            ])
 def annotate(text: Annotation = Annotation("<text>"),
              corpus_text: Text = Text(),
              lang: Language = Language,
              conf_file: Model = Model("[freeling.conf]"),
              fl_binary: Binary = Binary("[freeling.binary]"),
+             sentence_chunk: Optional[Annotation] = Annotation("[freeling.sentence_chunk]"),
              out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
              out_word: Output = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
              out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
@@ -39,24 +41,25 @@ def annotate(text: Annotation = Annotation("<text>"),
              out_pos: Output = Output("<token>:freeling.pos", cls="token:pos",
                                       description="Part-of-speeches from FreeLing"),
              out_sentence: Optional[Output] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
-             slevel: Optional[Annotation] = Annotation("[freeling.slevel]")):
+             sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
     """Run FreeLing and output sentences, tokens, baseforms, upos and pos."""
-    main(text, corpus_text, lang, conf_file, fl_binary, out_token, out_word, out_baseform, out_upos, out_pos,
-         out_sentence, slevel)
+    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, sentence_annotation)
 
 
 @annotator("POS tags, baseforms and named entities from FreeLing",
            language=["cat", "deu", "eng", "spa", "por"],
            config=[
                Config("freeling.binary", "analyze"),
-               Config("freeling.slevel", ""),
-               Config("freeling.conf", "freeling/[metadata.language].cfg")
+               Config("freeling.conf", "freeling/[metadata.language].cfg"),
+               Config("freeling.sentence_chunk", "<text>"),
+               Config("freeling.sentence_annotation", "")
            ])
-def annotate_full(text: Annotation = Annotation("<text>"),
-                  corpus_text: Text = Text(),
+def annotate_full(corpus_text: Text = Text(),
                   lang: Language = Language(),
                   conf_file: Model = Model("[freeling.conf]"),
                   fl_binary: Binary = Binary("[freeling.binary]"),
+                  sentence_chunk: Annotation = Annotation("[freeling.sentence_chunk]"),
                   out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
                   out_word: Output = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
                   out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
@@ -68,26 +71,26 @@ def annotate_full(text: Annotation = Annotation("<text>"),
                                                description="Named entitiy types from FreeLing"),
                   out_sentence: Optional[Output] = Output("freeling.sentence", cls="sentence",
                                                           description="Sentence segments"),
-                  slevel: Optional[Annotation] = Annotation("[freeling.slevel]")):
+                  sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
     """Run FreeLing and output the usual annotations plus named entity types."""
-    main(text, corpus_text, lang, conf_file, fl_binary, out_token, out_word, out_baseform, out_upos, out_pos,
-         out_sentence, slevel, out_ne_type)
+    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, sentence_annotation, out_ne_type)
 
 
-def main(text, corpus_text, lang, conf_file, fl_binary, out_token, out_word, out_baseform, out_upos, out_pos,
-         out_sentence, slevel, out_ne_type=None):
+def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+         out_sentence, sentence_annotation, out_ne_type=None):
     """Read an XML or text document and process the text with FreeLing."""
     # Init FreeLing as child process
-    fl_instance = Freeling(fl_binary, conf_file.path, lang, slevel)
+    fl_instance = Freeling(fl_binary, conf_file.path, lang, sentence_annotation)
 
     text_data = corpus_text.read()
     sentence_segments = []
     all_tokens = []
     last_position = 0
 
-    # Go through all text elements and send text to FreeLing
-    if slevel:
-        sentences_spans = slevel.read_spans()
+    if sentence_annotation:
+        # Go through all sentence spans and send text to FreeLing
+        sentences_spans = sentence_annotation.read_spans()
         for sentence_span in sentences_spans:
             inputtext = text_data[sentence_span[0]:sentence_span[1]]
             freeling_output = run_freeling(fl_instance, inputtext)
@@ -96,7 +99,8 @@ def main(text, corpus_text, lang, conf_file, fl_binary, out_token, out_word, out
             all_tokens.extend(processed_output)
 
     else:
-        text_spans = text.read_spans()
+        # Go through all text spans and send text to FreeLing
+        text_spans = sentence_chunk.read_spans()
         for text_span in text_spans:
             inputtext = text_data[text_span[0]:text_span[1]]
             freeling_output = run_freeling(fl_instance, inputtext)
@@ -124,12 +128,12 @@ def main(text, corpus_text, lang, conf_file, fl_binary, out_token, out_word, out
 class Freeling:
     """Handle the FreeLing process."""
 
-    def __init__(self, fl_binary, conf_file, lang, slevel):
+    def __init__(self, fl_binary, conf_file, lang, sentence_annotation):
         """Set properties and start FreeLing process."""
         self.binary = util.find_binary(fl_binary)
         self.conf_file = conf_file
         self.lang = lang
-        self.slevel = slevel
+        self.sentence_annotation = sentence_annotation
         self.start()
         self.error = False
         self.tagset = "Penn" if self.lang == "eng" else "EAGLES"
@@ -163,11 +167,7 @@ class Freeling:
 
 
 def run_freeling(fl_instance, inputtext):
-    """
-    Send a chunk of material to FreeLing and get the analysis, using pipes.
-
-    Do sentence segmentation unless fl_instance.slevel = True.
-    """
+    """Send a chunk of material to FreeLing and get the analysis, using pipes."""
     # Read stderr without blocking
     try:
         line = fl_instance.qerr.get(timeout=.1)
@@ -246,8 +246,8 @@ def process_json(fl_instance, json_lines, inputtext, start_pos, last_position):
     if len(current_sentence):
         sentences.append(current_sentence)
 
-    # In case of slevel: flatten sentences to a single sentence
-    if fl_instance.slevel:
+    # In case of an existing sentence_annotation: flatten sentences list to a single sentence
+    if fl_instance.sentence_annotation:
         return [t for s in sentences for t in s], last_position
     else:
         return sentences, last_position
