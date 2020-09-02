@@ -96,6 +96,6 @@ def get_slv_config(out: ModelOutput = ModelOutput("freeling/slv.cfg"),
 def download(url, out, fl_binary):
     """Download FreeLing config file after checking that the correct software is installed."""
     if util.find_binary(fl_binary):
-        util.download_model(url, out)
+        out.download(url)
     else:
         print("FreeLing software must be installed before config files can be downloaded.")
