@@ -23,10 +23,12 @@ NEC_LANGS = ["cat", "eng", "spa", "por"]
 @annotator("POS tags and baseforms from FreeLing",
            language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"],
            config=[
-               Config("freeling.binary", "analyze"),
-               Config("freeling.conf", "freeling/[metadata.language].cfg"),
-               Config("freeling.sentence_chunk", "<text>"),
-               Config("freeling.sentence_annotation", "")
+               Config("freeling.binary", "analyze", description="FreeLine executable"),
+               Config("freeling.conf", "freeling/[metadata.language].cfg", description="Path to FreeLing cfg file"),
+               Config("freeling.sentence_chunk", "<text>",
+                      description="Text chunk (annotation) to use as input when segmenting sentences"),
+               Config("freeling.sentence_annotation", "",
+                      description="Optional existing sentence segmentation annotation")
            ])
 def annotate(text: Annotation = Annotation("<text>"),
              corpus_text: Text = Text(),
@@ -50,10 +52,12 @@ def annotate(text: Annotation = Annotation("<text>"),
 @annotator("POS tags, baseforms and named entities from FreeLing",
            language=["cat", "deu", "eng", "spa", "por"],
            config=[
-               Config("freeling.binary", "analyze"),
-               Config("freeling.conf", "freeling/[metadata.language].cfg"),
-               Config("freeling.sentence_chunk", "<text>"),
-               Config("freeling.sentence_annotation", "")
+               Config("freeling.binary", "analyze", description="FreeLine executable"),
+               Config("freeling.conf", "freeling/[metadata.language].cfg", description="Path to FreeLing cfg file"),
+               Config("freeling.sentence_chunk", "<text>",
+                      description="Text chunk (annotation) to use as input when segmenting sentences"),
+               Config("freeling.sentence_annotation", "",
+                      description="Optional existing sentence segmentation annotation")
            ])
 def annotate_full(corpus_text: Text = Text(),
                   lang: Language = Language(),
