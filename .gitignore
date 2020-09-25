@@ -1,6 +1,3 @@
-# Folder for model files
-sparv-model/freeling/
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

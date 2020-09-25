@@ -30,58 +30,45 @@ Some of these languages (Catalan, English, German, Portuguese and Spanish) also 
 * [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline)
 * [FreeLing 4.2 and freeling-langs-4.2](https://github.com/TALP-UPC/FreeLing/releases/tag/4.2)
 * [Python 3.6](http://python.org/) or newer
-* [pip](https://pip.pypa.io/en/stable/installing)
 
 
 ## Installation
 
-1. Download the sparv-freeling repository:
+**Option 1:** Installation from pypi with [pipx](https://pipxproject.github.io/pipx/):
+```bash
+pipx inject sparv-pipeline sparv-freeling
+```
 
-    `git clone git@github.com:spraakbanken/sparv-freeling.git`
+**Option 2:** Installation from GitHub with [pipx](https://pipxproject.github.io/pipx/):
+```bash
+pipx inject sparv-pipeline https://github.com/spraakbanken/sparv-freeling/archive/latest.tar.gz
+```
 
-2. Install the sparv-freeling plugin with pipx:
-
-    `pipx inject sparv-pipeline ./sparv-freeling`
-
-    **or** install the plugin in your sparv-pipeline virtual environment:
-
-   ```
-   source [path to sparv-pipeline virtual environment]/bin/activate
-   pip install [path to sparv-freeling directory]
-   ```
+**Option 3:** Manual download of plugin and installation in your sparv-pipeline virtual environment:
+```bash
+source [path to sparv-pipeline virtual environment]/bin/activate
+pip install [path to the downloaded sparv-freeling directory]
+```
 
 ## Usage
 
-The Sparv pipeline needs a config file describing your corpus and the desired output format.
+The Sparv pipeline needs a config file describing your corpus and the desired output format. Please refer to the Sparv
+pipeline user manual for more details on config files and running Sparv.
 
-Example corpus (`original/myfile.xml`):
-
-```
+Example input:
+```xml
 <text title="Example">
   This is an example for how to run Sparv.
 </text>
 ```
 
-Example config file (`config.yaml`):
-
-TODO!
-
-Example folder structure:
-
-```
-mycorpus/
-    config.yaml
-    original/
-        myfile.xml
+Example command for creating xml with annotations:
+```bash
+sparv run
 ```
 
-
-Command for creating xml with annotations:
-
-    sparv run
-
-Result file (`export/xml/myfile_export.xml`):
-```
+Result file:
+```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <text lix="20.00" title="Example">
   <sentence>
