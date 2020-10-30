@@ -20,16 +20,7 @@ END = b"27345327645267453684527685"
 NEC_LANGS = ["cat", "eng", "spa", "por"]
 
 
-@annotator("POS tags and baseforms from FreeLing",
-           language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"],
-           config=[
-               Config("freeling.binary", "analyze", description="FreeLine executable"),
-               Config("freeling.conf", "freeling/[metadata.language].cfg", description="Path to FreeLing cfg file"),
-               Config("freeling.sentence_chunk", "<text>",
-                      description="Text chunk (annotation) to use as input when segmenting sentences"),
-               Config("freeling.sentence_annotation", "",
-                      description="Optional existing sentence segmentation annotation")
-           ])
+@annotator("POS tags and baseforms from FreeLing", language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"])
 def annotate(text: Annotation = Annotation("<text>"),
              corpus_text: Text = Text(),
              lang: Language = Language,
@@ -49,16 +40,7 @@ def annotate(text: Annotation = Annotation("<text>"),
          out_sentence, sentence_annotation)
 
 
-@annotator("POS tags, baseforms and named entities from FreeLing",
-           language=["cat", "deu", "eng", "spa", "por"],
-           config=[
-               Config("freeling.binary", "analyze", description="FreeLine executable"),
-               Config("freeling.conf", "freeling/[metadata.language].cfg", description="Path to FreeLing cfg file"),
-               Config("freeling.sentence_chunk", "<text>",
-                      description="Text chunk (annotation) to use as input when segmenting sentences"),
-               Config("freeling.sentence_annotation", "",
-                      description="Optional existing sentence segmentation annotation")
-           ])
+@annotator("POS tags, baseforms and named entities from FreeLing", language=["cat", "deu", "eng", "spa", "por"])
 def annotate_full(corpus_text: Text = Text(),
                   lang: Language = Language(),
                   conf_file: Model = Model("[freeling.conf]"),
