@@ -1,3 +1,5 @@
+"""Annotations from FreeLing for various languages."""
+
 from sparv import Config
 from . import freeling, models
 
