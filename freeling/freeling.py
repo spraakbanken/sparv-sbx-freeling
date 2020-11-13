@@ -253,7 +253,7 @@ def make_token(fl_instance, json_token, inputtext, start_pos, last_position):
     pos = json_token.get("tag", "")
     upos = []
     for p in pos.split("+"):
-        upos.append(util.convert_to_upos(p, fl_instance.lang, fl_instance.tagset))
+        upos.append(util.tagsets.pos_to_upos(p, fl_instance.lang, fl_instance.tagset))
     upos = "+".join(upos)
     name_type = json_token.get("neclass", "")
 
