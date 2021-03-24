@@ -96,11 +96,12 @@ def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out
                 sentence_segments.append((s[0].start, s[-1].end))
 
     # Write annotations
-    out_token.write([(t.start, t.end) for t in all_tokens])
-    out_word.write([t.word for t in all_tokens])
-    out_upos.write([t.upos for t in all_tokens])
-    out_pos.write([t.pos for t in all_tokens])
-    out_baseform.write([t.baseform for t in all_tokens])
+    if all_tokens:
+        out_token.write([(t.start, t.end) for t in all_tokens])
+        out_word.write([t.word for t in all_tokens])
+        out_upos.write([t.upos for t in all_tokens])
+        out_pos.write([t.pos for t in all_tokens])
+        out_baseform.write([t.baseform for t in all_tokens])
     if out_ne_type:
         out_ne_type.write([t.name_type for t in all_tokens])
     # TODO: Sparv does not support optional outputs yet, so always write out_sentence, even if it's empty
