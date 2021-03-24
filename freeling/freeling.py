@@ -21,8 +21,7 @@ NEC_LANGS = ["cat", "eng", "spa", "por"]
 
 
 @annotator("POS tags and baseforms from FreeLing", language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"])
-def annotate(text: Annotation = Annotation("<text>"),
-             corpus_text: Text = Text(),
+def annotate(corpus_text: Text = Text(),
              lang: Language = Language,
              conf_file: Model = Model("[freeling.conf]"),
              fl_binary: Binary = Binary("[freeling.binary]"),
@@ -157,8 +156,11 @@ def run_freeling(fl_instance, inputtext):
     # Read stderr without blocking
     try:
         line = fl_instance.qerr.get(timeout=.1)
-        log.error("FreeLing error encountered: %s", line)
-        fl_instance.error = True
+        # Ignore the "No rule to get short version of tag" error (http://nlp.lsi.upc.edu/freeling/node/655)
+        line = line.decode()
+        if not line.startswith("TAGSET: No rule to get short version of tag"):
+            log.error("FreeLing error encountered: %s", line)
+            fl_instance.error = True
     except queue.Empty:
         # No errors, continue
         pass
