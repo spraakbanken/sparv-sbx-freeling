@@ -14,7 +14,7 @@ def get_readme(readme_path):
 
 setuptools.setup(
     name="sparv-freeling",
-    version="4.0.0",
+    version="4.0.1",
     description="FreeLing plug-in for Sparv (Språkbanken's corpus annotation pipeline)",
     long_description=get_readme("README.md"),
     long_description_content_type="text/markdown",
@@ -24,6 +24,6 @@ setuptools.setup(
     license="GNU GPL",
     packages=["freeling"],
     python_requires=">=3.6",
-    # install_requires=["sparv-pipeline@https://github.com/spraakbanken/sparv-pipeline/archive/v4.tar.gz"], # https://www.python.org/dev/peps/pep-0508/
+    install_requires=["sparv-pipeline>=4,<5"],
     entry_points={"sparv.plugin": ["freeling = freeling"]}
 )
