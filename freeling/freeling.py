@@ -27,7 +27,6 @@ def annotate(corpus_text: Text = Text(),
              fl_binary: Binary = Binary("[freeling.binary]"),
              sentence_chunk: Optional[Annotation] = Annotation("[freeling.sentence_chunk]"),
              out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
-             out_word: Output = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
              out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
              out_upos: Output = Output("<token>:freeling.upos", cls="token:upos", description="Part-of-speeches in UD"),
              out_pos: Output = Output("<token>:freeling.pos", cls="token:pos",
@@ -35,7 +34,7 @@ def annotate(corpus_text: Text = Text(),
              out_sentence: Optional[Output] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
              sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
     """Run FreeLing and output sentences, tokens, baseforms, upos and pos."""
-    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_baseform, out_upos, out_pos,
          out_sentence, sentence_annotation)
 
 
@@ -46,7 +45,6 @@ def annotate_full(corpus_text: Text = Text(),
                   fl_binary: Binary = Binary("[freeling.binary]"),
                   sentence_chunk: Optional[Annotation] = Annotation("[freeling.sentence_chunk]"),
                   out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
-                  out_word: Output = Output("<token>:freeling.word", cls="token:word", description="Token strings"),
                   out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
                   out_upos: Output = Output("<token>:freeling.upos", cls="token:upos",
                                             description="Part-of-speeches in UD"),
@@ -58,11 +56,11 @@ def annotate_full(corpus_text: Text = Text(),
                                                           description="Sentence segments"),
                   sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
     """Run FreeLing and output the usual annotations plus named entity types."""
-    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+    main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_baseform, out_upos, out_pos,
          out_sentence, sentence_annotation, out_ne_type)
 
 
-def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_word, out_baseform, out_upos, out_pos,
+def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_baseform, out_upos, out_pos,
          out_sentence, sentence_annotation, out_ne_type=None):
     """Read an XML or text document and process the text with FreeLing."""
     # Init FreeLing as child process
@@ -98,7 +96,6 @@ def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out
     # Write annotations
     if all_tokens:
         out_token.write([(t.start, t.end) for t in all_tokens])
-        out_word.write([t.word for t in all_tokens])
         out_upos.write([t.upos for t in all_tokens])
         out_pos.write([t.pos for t in all_tokens])
         out_baseform.write([t.baseform for t in all_tokens])
