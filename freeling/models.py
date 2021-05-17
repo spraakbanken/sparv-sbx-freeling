@@ -1,7 +1,6 @@
 """Download FreeLing configs and make them available for Sparv."""
 
-import sparv.util as util
-from sparv import Binary, ModelOutput, modelbuilder
+from sparv.api import Binary, ModelOutput, modelbuilder, util
 
 
 CONFIG_URL = "https://github.com/TALP-UPC/FreeLing/raw/4.2/data/config/"

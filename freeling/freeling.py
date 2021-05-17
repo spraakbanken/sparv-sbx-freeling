@@ -7,8 +7,7 @@ import subprocess
 import threading
 from typing import Optional
 
-import sparv.util as util
-from sparv import Annotation, Binary, Config, Language, Model, Output, Text, annotator
+from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, util
 
 log = util.get_logger(__name__)
 
