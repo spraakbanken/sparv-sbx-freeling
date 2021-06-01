@@ -7,9 +7,10 @@ import subprocess
 import threading
 from typing import Optional
 
-from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, util
+from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, get_logger, util
+from sparv.api.util.tagsets import pos_to_upos
 
-log = util.get_logger(__name__)
+log = get_logger(__name__)
 
 
 # Random token to signal end of input
@@ -112,7 +113,7 @@ class Freeling:
 
     def __init__(self, fl_binary, conf_file, lang, sentence_annotation):
         """Set properties and start FreeLing process."""
-        self.binary = util.find_binary(fl_binary)
+        self.binary = util.system.find_binary(fl_binary)
         self.conf_file = conf_file
         self.lang = lang
         self.sentence_annotation = sentence_annotation
@@ -167,7 +168,7 @@ def run_freeling(fl_instance, inputtext):
 
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
-    text = stripped_text.encode(util.UTF8) + b"\n" + END + b"\n"
+    text = stripped_text.encode(util.constants.UTF8) + b"\n" + END + b"\n"
 
     # Send input to FreeLing in thread (prevents blocking)
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
@@ -252,7 +253,7 @@ def make_token(fl_instance, json_token, inputtext, start_pos, last_position):
     pos = json_token.get("tag", "")
     upos = []
     for p in pos.split("+"):
-        upos.append(util.tagsets.pos_to_upos(p, fl_instance.lang, fl_instance.tagset))
+        upos.append(pos_to_upos(p, fl_instance.lang, fl_instance.tagset))
     upos = "+".join(upos)
     name_type = json_token.get("neclass", "")
 
