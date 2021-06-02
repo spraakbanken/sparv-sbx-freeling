@@ -10,7 +10,7 @@ from typing import Optional
 from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, get_logger, util
 from sparv.api.util.tagsets import pos_to_upos
 
-log = get_logger(__name__)
+logger = get_logger(__name__)
 
 
 # Random token to signal end of input
@@ -157,14 +157,14 @@ def run_freeling(fl_instance, inputtext):
         # Ignore the "No rule to get short version of tag" error (http://nlp.lsi.upc.edu/freeling/node/655)
         line = line.decode()
         if not line.startswith("TAGSET: No rule to get short version of tag"):
-            log.error("FreeLing error encountered: %s", line)
+            logger.error("FreeLing error encountered: %s", line)
             fl_instance.error = True
     except queue.Empty:
         # No errors, continue
         pass
 
     stripped_text = re.sub("\n", " ", inputtext)
-    # log.debug("Sending input to FreeLing:\n" + stripped_text)
+    # logger.debug("Sending input to FreeLing:\n" + stripped_text)
 
     # Send material to FreeLing; Send blank lines for flushing;
     # Send end-marker to know when to stop reading stdout
@@ -172,7 +172,7 @@ def run_freeling(fl_instance, inputtext):
 
     # Send input to FreeLing in thread (prevents blocking)
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
-    log.debug("Done sending input to FreeLing!")
+    logger.debug("Done sending input to FreeLing!")
 
     return process_lines(fl_instance, stripped_text)
 
@@ -189,13 +189,13 @@ def process_lines(fl_instance, text):
         else:
             empty_output = 0
             processed_output.append(line.decode())
-            log.debug("FreeLing output:\n" + line.decode().strip())
+            logger.debug("FreeLing output:\n" + line.decode().strip())
 
         # No output recieved in a while. Skip this node and restart FreeLing.
         # (Multiple blank lines in input are ignored by FreeLing.)
         if empty_output > 5:
             if not fl_instance.error:
-                log.error("Something went wrong, FreeLing stopped responding.")
+                logger.error("Something went wrong, FreeLing stopped responding.")
             fl_instance.restart()
             return []
 
@@ -247,7 +247,7 @@ def make_token(fl_instance, json_token, inputtext, start_pos, last_position):
 
     start = start_pos + start
     end = start_pos + end
-    # log.debug(f"\n{inputtext}\n{word} {start}-{end}")
+    # logger.debug(f"\n{inputtext}\n{word} {start}-{end}")
 
     baseform = json_token.get("lemma", "")
     pos = json_token.get("tag", "")
