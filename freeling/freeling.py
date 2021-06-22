@@ -7,7 +7,7 @@ import subprocess
 import threading
 from typing import Optional
 
-from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, get_logger, util
+from sparv.api import Annotation, Binary, Language, Model, Output, Text, annotator, get_logger, util
 from sparv.api.util.tagsets import pos_to_upos
 
 logger = get_logger(__name__)
