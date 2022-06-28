@@ -1,9 +1,9 @@
-name: sparv-freeling
+name: sparv-sbx-freeling
 description: FreeLing plugin for Sparv Pipeline
 long_description: |
   This plugin supports sentence segmentation, tokenisation, baseform analysis, and part-of-speech annotations with FreeLing for different languages.
   Named-entity recognition is supported for some languages.
-source: "https://github.com/spraakbanken/sparv-freeling/"
+source: "https://github.com/spraakbanken/sparv-sbx-freeling/"
 author: Språkbanken
 author_email: sb-info@svenska.gu.se
 license: GNU GPL
@@ -24,9 +24,12 @@ languages:
   - por
 
 versions:
+  - version: 5.0.0
+    sparv_pipeline_requires: ">=5.0.dev0"
+    install_pointer: sparv-sbx-freeling
   - version: 4.0.1
     sparv_pipeline_requires: ">=4,<5"
-    install_pointer: sparv-freeling
+    install_pointer: sparv-sbx-freeling
   - version: 4.0.0
     sparv_pipeline_requires: "==4.0.0"
-    install_pointer: sparv-freeling==4.0
+    install_pointer: sparv-sbx-freeling==4.0

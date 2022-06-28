@@ -1,4 +1,4 @@
-# sparv-freeling
+# sparv-sbx-freeling
 
 This is a plugin for the [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline) 
 containing a wrapper for [FreeLing](http://nlp.lsi.upc.edu/freeling/node/30).
@@ -36,18 +36,18 @@ Some of these languages (Catalan, English, German, Portuguese and Spanish) also 
 
 **Option 1:** Installation from pypi with [pipx](https://pipxproject.github.io/pipx/):
 ```bash
-pipx inject sparv-pipeline sparv-freeling
+pipx inject sparv-pipeline sparv-sbx-freeling
 ```
 
 **Option 2:** Installation from GitHub with [pipx](https://pipxproject.github.io/pipx/):
 ```bash
-pipx inject sparv-pipeline https://github.com/spraakbanken/sparv-freeling/archive/latest.tar.gz
+pipx inject sparv-pipeline https://github.com/spraakbanken/sparv-sbx-freeling/archive/latest.tar.gz
 ```
 
 **Option 3:** Manual download of plugin and installation in your sparv-pipeline virtual environment:
 ```bash
 source [path to sparv-pipeline virtual environment]/bin/activate
-pip install [path to the downloaded sparv-freeling directory]
+pip install [path to the downloaded sparv-sbx-freeling directory]
 ```
 
 ## Usage

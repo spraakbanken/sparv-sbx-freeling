@@ -1,4 +1,4 @@
-"""Install script for the Sparv FreeLing plugin."""
+"""Install script for the sparv-sbx-freeling plugin."""
 
 import os.path
 
@@ -13,17 +13,17 @@ def get_readme(readme_path):
 
 
 setuptools.setup(
-    name="sparv-freeling",
-    version="4.0.1",
+    name="sparv-sbx-freeling",
+    version="5.0.0",
     description="FreeLing plug-in for Sparv (Språkbanken's corpus annotation pipeline)",
     long_description=get_readme("README.md"),
     long_description_content_type="text/markdown",
-    url="https://github.com/spraakbanken/sparv-freeling/",
+    url="https://github.com/spraakbanken/sparv-sbx-freeling/",
     author="Språkbanken",
     author_email="sb-info@svenska.gu.se",
     license="GNU GPL",
-    packages=["freeling"],
+    packages=["sbx_freeling"],
     python_requires=">=3.6",
-    install_requires=["sparv-pipeline>=4,<5"],
-    entry_points={"sparv.plugin": ["freeling = freeling"]}
+    install_requires=["sparv-pipeline>=5.0.dev0"],
+    entry_points={"sparv.plugin": ["sbx_freeling = sbx_freeling"]}
 )

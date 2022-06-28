@@ -23,16 +23,16 @@ NEC_LANGS = ["cat", "eng", "spa", "por"]
 @annotator("POS tags and baseforms from FreeLing", language=["ast", "fra", "glg", "ita", "nob", "rus", "slv"])
 def annotate(corpus_text: Text = Text(),
              lang: Language = Language,
-             conf_file: Model = Model("[freeling.conf]"),
-             fl_binary: Binary = Binary("[freeling.binary]"),
-             sentence_chunk: Optional[Annotation] = Annotation("[freeling.sentence_chunk]"),
-             out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
-             out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
-             out_upos: Output = Output("<token>:freeling.upos", cls="token:upos", description="Part-of-speeches in UD"),
-             out_pos: Output = Output("<token>:freeling.pos", cls="token:pos",
+             conf_file: Model = Model("[sbx_freeling.conf]"),
+             fl_binary: Binary = Binary("[sbx_freeling.binary]"),
+             sentence_chunk: Optional[Annotation] = Annotation("[sbx_freeling.sentence_chunk]"),
+             out_token: Output = Output("sbx_freeling.token", cls="token", description="Token segments"),
+             out_baseform: Output = Output("<token>:sbx_freeling.baseform", description="Baseforms from FreeLing"),
+             out_upos: Output = Output("<token>:sbx_freeling.upos", cls="token:upos", description="Part-of-speeches in UD"),
+             out_pos: Output = Output("<token>:sbx_freeling.pos", cls="token:pos",
                                       description="Part-of-speeches from FreeLing"),
-             out_sentence: Optional[Output] = Output("freeling.sentence", cls="sentence", description="Sentence segments"),
-             sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
+             out_sentence: Optional[Output] = Output("sbx_freeling.sentence", cls="sentence", description="Sentence segments"),
+             sentence_annotation: Optional[Annotation] = Annotation("[sbx_freeling.sentence_annotation]")):
     """Run FreeLing and output sentences, tokens, baseforms, upos and pos."""
     main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_baseform, out_upos, out_pos,
          out_sentence, sentence_annotation)
@@ -41,20 +41,20 @@ def annotate(corpus_text: Text = Text(),
 @annotator("POS tags, baseforms and named entities from FreeLing", language=["cat", "deu", "eng", "spa", "por"])
 def annotate_full(corpus_text: Text = Text(),
                   lang: Language = Language(),
-                  conf_file: Model = Model("[freeling.conf]"),
-                  fl_binary: Binary = Binary("[freeling.binary]"),
-                  sentence_chunk: Optional[Annotation] = Annotation("[freeling.sentence_chunk]"),
-                  out_token: Output = Output("freeling.token", cls="token", description="Token segments"),
-                  out_baseform: Output = Output("<token>:freeling.baseform", description="Baseforms from FreeLing"),
-                  out_upos: Output = Output("<token>:freeling.upos", cls="token:upos",
+                  conf_file: Model = Model("[sbx_freeling.conf]"),
+                  fl_binary: Binary = Binary("[sbx_freeling.binary]"),
+                  sentence_chunk: Optional[Annotation] = Annotation("[sbx_freeling.sentence_chunk]"),
+                  out_token: Output = Output("sbx_freeling.token", cls="token", description="Token segments"),
+                  out_baseform: Output = Output("<token>:sbx_freeling.baseform", description="Baseforms from FreeLing"),
+                  out_upos: Output = Output("<token>:sbx_freeling.upos", cls="token:upos",
                                             description="Part-of-speeches in UD"),
-                  out_pos: Output = Output("<token>:freeling.pos", cls="token:pos",
+                  out_pos: Output = Output("<token>:sbx_freeling.pos", cls="token:pos",
                                            description="Part-of-speeches from FreeLing"),
-                  out_ne_type: Output = Output("<token>:freeling.ne_type", cls="token:named_entity_type",
+                  out_ne_type: Output = Output("<token>:sbx_freeling.ne_type", cls="token:named_entity_type",
                                                description="Named entitiy types from FreeLing"),
-                  out_sentence: Optional[Output] = Output("freeling.sentence", cls="sentence",
+                  out_sentence: Optional[Output] = Output("sbx_freeling.sentence", cls="sentence",
                                                           description="Sentence segments"),
-                  sentence_annotation: Optional[Annotation] = Annotation("[freeling.sentence_annotation]")):
+                  sentence_annotation: Optional[Annotation] = Annotation("[sbx_freeling.sentence_annotation]")):
     """Run FreeLing and output the usual annotations plus named entity types."""
     main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out_baseform, out_upos, out_pos,
          out_sentence, sentence_annotation, out_ne_type)
