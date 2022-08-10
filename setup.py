@@ -23,7 +23,7 @@ setuptools.setup(
     author_email="sb-info@svenska.gu.se",
     license="GNU GPL",
     packages=["sbx_freeling"],
-    python_requires=">=3.6",
+    python_requires=">=3.6.2",
     install_requires=["sparv-pipeline>=5.0.dev0"],
     entry_points={"sparv.plugin": ["sbx_freeling = sbx_freeling"]}
 )
