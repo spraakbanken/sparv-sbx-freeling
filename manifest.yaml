@@ -7,7 +7,6 @@ source: "https://github.com/spraakbanken/sparv-sbx-freeling/"
 author: Språkbanken
 author_email: sb-info@svenska.gu.se
 license: GNU GPL
-python_requires: ">=3.6"
 requires_additional_installs: true
 languages:
   - ast
@@ -26,10 +25,13 @@ languages:
 versions:
   - version: 5.0.0
     sparv_pipeline_requires: ">=5.0.dev0"
-    install_pointer: sparv-sbx-freeling
+    python_requires: ">=3.6.2"
+    install_pointer: sparv-sbx-freeling==5.0.0
   - version: 4.0.1
+    python_requires: ">=3.6"
     sparv_pipeline_requires: ">=4,<5"
-    install_pointer: sparv-sbx-freeling
+    install_pointer: sparv-freeling==4.0.1
   - version: 4.0.0
     sparv_pipeline_requires: "==4.0.0"
-    install_pointer: sparv-sbx-freeling==4.0
+    python_requires: ">=3.6"
+    install_pointer: sparv-freeling==4.0
