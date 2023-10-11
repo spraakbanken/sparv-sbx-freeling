@@ -74,16 +74,21 @@ def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out
     if sentence_annotation:
         # Go through all sentence spans and send text to FreeLing
         sentences_spans = sentence_annotation.read_spans()
+        sentence_spans = list(sentence_spans)
+        logger.progress(total=len(sentences_spans))
         for sentence_span in sentences_spans:
             inputtext = text_data[sentence_span[0]:sentence_span[1]]
             freeling_output = run_freeling(fl_instance, inputtext)
             processed_output, last_position = process_json(
                 fl_instance, freeling_output, inputtext, sentence_span[0], last_position)
             all_tokens.extend(processed_output)
+            logger.progress()
 
     else:
         # Go through all text spans and send text to FreeLing
         text_spans = sentence_chunk.read_spans()
+        text_spans = list(text_spans)
+        logger.progress(total=len(text_spans))
         for text_span in text_spans:
             inputtext = text_data[text_span[0]:text_span[1]]
             freeling_output = run_freeling(fl_instance, inputtext)
@@ -92,6 +97,7 @@ def main(corpus_text, lang, conf_file, fl_binary, sentence_chunk, out_token, out
             for s in processed_output:
                 all_tokens.extend(s)
                 sentence_segments.append((s[0].start, s[-1].end))
+                logger.progress()
 
     # Write annotations
     if all_tokens:
@@ -174,10 +180,10 @@ def run_freeling(fl_instance, inputtext):
     threading.Thread(target=pump_input, args=[fl_instance.process.stdin, text]).start()
     logger.debug("Done sending input to FreeLing!")
 
-    return process_lines(fl_instance, stripped_text)
+    return process_lines(fl_instance)
 
 
-def process_lines(fl_instance, text):
+def process_lines(fl_instance):
     """Read and process Freeling output line by line."""
     processed_output = []
     empty_output = 0
