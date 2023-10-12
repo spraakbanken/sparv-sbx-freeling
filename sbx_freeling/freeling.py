@@ -1,8 +1,10 @@
 """Do analysis with FreeLing."""
 
 import json
+import os
 import queue
 import re
+import signal
 import subprocess
 import threading
 from typing import Optional
@@ -139,7 +141,7 @@ class Freeling:
                                         stdout=subprocess.PIPE,
                                         stdin=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
-                                        bufsize=0)
+                                        bufsize=0, start_new_session=True)
         self.qerr = queue.Queue()
         self.terr = threading.Thread(target=enqueue_output, args=(self.process.stderr, self.qerr))
         self.terr.daemon = True  # thread dies with the program
@@ -147,7 +149,8 @@ class Freeling:
 
     def kill(self):
         """Terminate current process."""
-        util.system.kill_process(self.process)
+        # Freeling spawns children, so we need to kill the whole process group
+        os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
 
     def restart(self):
         """Restart current process."""
