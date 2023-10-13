@@ -295,7 +295,7 @@ def make_token(fl_instance, json_token, inputtext, input_start_index):
     end = int(json_token.get("end", -1)) - fl_instance.next_begin
     word = inputtext[start:end]
 
-    logger.debug(f"word: '{word}', index: {start}-{end}, input: '{inputtext}'")
+    # logger.debug(f"word: '{word}', index: {start}-{end}, input: '{inputtext}'")
     # input_start_index: Index of the first char in this chunk (relative to the entire input text)
     start = input_start_index + start
     end = input_start_index + end
