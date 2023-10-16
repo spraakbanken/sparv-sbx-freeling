@@ -172,7 +172,7 @@ def run_freeling(fl_instance, inputtext, input_start_index):
         # Ignore the "No rule to get short version of tag" error (http://nlp.lsi.upc.edu/freeling/node/655)
         line = line.decode()
         if not line.startswith("TAGSET: No rule to get short version of tag"):
-            logger.error("FreeLing error encountered: %s", line)
+            logger.warning("FreeLing error encountered: %s", line)
             fl_instance.error = True
     except queue.Empty:
         # No errors, continue
@@ -225,9 +225,10 @@ def process_lines(fl_instance, text, input_start_index):
             # (Multiple blank lines in input are ignored by FreeLing.)
             if empty_output > 5:
                 if not fl_instance.error:
-                    logger.error("Something went wrong, FreeLing stopped responding. If this happens frequently you "
-                                 "could try increasing the 'sbx_freeling.timeout' config variable. The current input "
-                                 f"chunk will not be analyzed properly: '{text[:100]}...'")
+                    text_preview = text if len(text) <= 100 else text[:100] + "..."
+                    logger.warning("Something went wrong, FreeLing stopped responding. If this happens frequently you "
+                                   "could try increasing the 'sbx_freeling.timeout' config variable. The current input "
+                                   f"chunk will not be analyzed properly: '{text_preview}'")
                 fl_instance.restart()
                 processed_output = make_empty_output()
                 return process_json(fl_instance, processed_output, text, input_start_index)
@@ -238,9 +239,10 @@ def process_lines(fl_instance, text, input_start_index):
 
         except queue.Empty:
             # Freeling has not responded within the timeout. Skip this node and restart FreeLing.
-            logger.error("Something went wrong, FreeLing stopped responding. If this happens frequently you "
-                         "could try increasing the 'sbx_freeling.timeout' config variable. The current input "
-                         f"chunk will not be analyzed properly: '{text[:100]}...'")
+            text_preview = text if len(text) <= 100 else text[:100] + "..."
+            logger.warning("Something went wrong, FreeLing stopped responding. If this happens frequently you "
+                           "could try increasing the 'sbx_freeling.timeout' config variable. The current input "
+                           f"chunk will not be analyzed properly: '{text_preview}'")
             fl_instance.restart()
             processed_output = make_empty_output()
             return process_json(fl_instance, processed_output, text, input_start_index)
