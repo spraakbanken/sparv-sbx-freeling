@@ -11,6 +11,7 @@ from typing import Optional
 
 from sparv.api import Annotation, Binary, Config, Language, Model, Output, Text, annotator, get_logger, util
 from sparv.api.util.tagsets import pos_to_upos
+from sparv.api.util.tagsets.pos_to_upos import FALLBACK
 
 logger = get_logger(__name__)
 
@@ -305,8 +306,11 @@ def make_token(fl_instance, json_token, inputtext, input_start_index):
     baseform = json_token.get("lemma", "")
     pos = json_token.get("tag", "")
     upos = []
-    for p in pos.split("+"):
-        upos.append(pos_to_upos(p, fl_instance.lang, fl_instance.tagset))
+    if pos:
+        for p in pos.split("+"):
+            upos.append(pos_to_upos(p, fl_instance.lang, fl_instance.tagset))
+    else:
+        upos.append(FALLBACK)
     upos = "+".join(upos)
     name_type = json_token.get("neclass", "")
 
