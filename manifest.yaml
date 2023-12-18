@@ -23,6 +23,10 @@ languages:
   - por
 
 versions:
+  - version: 5.1.0
+    sparv_pipeline_requires: ">=5.2.0"
+    python_requires: ">=3.8"
+    install_pointer: sparv-sbx-freeling==5.1.0
   - version: 5.0.0
     sparv_pipeline_requires: ">=5.0.dev0"
     python_requires: ">=3.6.2"
