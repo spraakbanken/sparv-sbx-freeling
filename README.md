@@ -29,7 +29,7 @@ Some of these languages (Catalan, English, German, Portuguese and Spanish) also 
 
 * [Sparv pipeline](https://github.com/spraakbanken/sparv-pipeline)
 * [FreeLing 4.2 and freeling-langs-4.2](https://github.com/TALP-UPC/FreeLing/releases/tag/4.2)
-* [Python 3.6.2](http://python.org/) or newer
+* [Python 3.8](http://python.org/) or newer
 
 
 ## Installation
