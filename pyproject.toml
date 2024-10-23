@@ -8,7 +8,7 @@ version = "5.2.0"
 description = "FreeLing plug-in for Sparv (Språkbanken's corpus annotation pipeline)"
 readme = "README.md"
 license.text = "GNU GPL"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 authors = [
     { name = "Språkbanken Text", email = "sb-info@svenska.gu.se" },
 ]
