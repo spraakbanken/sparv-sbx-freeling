@@ -34,12 +34,12 @@ Some of these languages (Catalan, English, German, Portuguese and Spanish) also 
 
 ## Installation
 
-**Option 1:** Installation from pypi with [pipx](https://pipxproject.github.io/pipx/):
+**Option 1:** Installation from pypi with [pipx](https://pipx.pypa.io/):
 ```bash
 pipx inject sparv-pipeline sparv-sbx-freeling
 ```
 
-**Option 2:** Installation from GitHub with [pipx](https://pipxproject.github.io/pipx/):
+**Option 2:** Installation from GitHub with [pipx](https://pipx.pypa.io/):
 ```bash
 pipx inject sparv-pipeline https://github.com/spraakbanken/sparv-sbx-freeling/archive/latest.tar.gz
 ```

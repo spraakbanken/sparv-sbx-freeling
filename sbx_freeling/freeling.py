@@ -133,7 +133,7 @@ class Freeling:
     def start(self):
         """Start the external FreeLingTool."""
         ne_flags = []
-        # Do named entitiy recognition and classification if supported for language
+        # Perform named entity recognition and classification if supported for language
         if self.lang in NEC_LANGS:
             ne_flags = ["--ner", "--nec"]
         # Flags --nortkcon --nortk prevent FreeLing from splitting contractions
@@ -222,7 +222,7 @@ def process_lines(fl_instance, text, input_start_index):
                 # logger.debug("FreeLing output:\n" + line.decode().strip())
 
             # TODO: is this still needed?
-            # No output recieved in a while. Skip this node and restart FreeLing.
+            # No output received in a while. Skip this node and restart FreeLing.
             # (Multiple blank lines in input are ignored by FreeLing.)
             if empty_output > 5:
                 if not fl_instance.error:
