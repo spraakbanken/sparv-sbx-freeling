@@ -1,0 +1,24 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "sparv-sbx-freeling"
+version = "5.2.0"
+description = "FreeLing plug-in for Sparv (Språkbanken's corpus annotation pipeline)"
+readme = "README.md"
+license.text = "GNU GPL"
+requires-python = ">=3.8"
+authors = [
+    { name = "Språkbanken Text", email = "sb-info@svenska.gu.se" },
+]
+dependencies = [
+    "sparv-pipeline>=5.2.0",
+]
+entry-points."sparv.plugin" = { sbx_freeling = "sbx_freeling" }
+
+[project.urls]
+Homepage = "https://github.com/spraakbanken/sparv-sbx-freeling/"
+
+[tool.hatch]
+build.include = ["/sbx_freeling"]
